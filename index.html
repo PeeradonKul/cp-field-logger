@@ -167,8 +167,8 @@
       <div class="grid2">
         <div>
           <span class="label">KP / จุดวัด</span>
-          <input type="text" id="f-kp" inputmode="decimal" placeholder="เช่น 21.194" list="kpList" autocomplete="off" />
-          <datalist id="kpList"></datalist>
+          <select id="f-kp-select"></select>
+          <input type="text" id="f-kp-new" inputmode="decimal" placeholder="พิมพ์ KP ใหม่ เช่น 21.194" style="display:none;" />
         </div>
         <div>
           <span class="label">Test post type (จากรายงานเดิม)</span>
@@ -220,8 +220,8 @@
     <div id="form-transformer" class="formPane" style="display:none;">
     <div class="card">
       <span class="label">อุปกรณ์ (Transformer/Rectifier) — เลือกจาก list หรือพิมพ์ชื่อใหม่ได้เลยถ้ามีอุปกรณ์เพิ่ม</span>
-      <input type="text" id="t-equip" placeholder="เช่น 114-93-ES-001-CP RECTIFIER 001" list="equipList" autocomplete="off" />
-      <datalist id="equipList"></datalist>
+      <select id="t-equip-select"></select>
+      <input type="text" id="t-equip-new" placeholder="พิมพ์ชื่ออุปกรณ์ใหม่ เช่น 114-93-ES-001-CP RECTIFIER 001" style="display:none;" />
 
       <div class="grid2">
         <div>
@@ -297,8 +297,8 @@
     <div id="form-bondbox" class="formPane" style="display:none;">
     <div class="card">
       <span class="label">จุดวัด (Location/KP) — เลือกจาก list หรือพิมพ์จุดใหม่ได้เลยถ้ามีเพิ่ม</span>
-      <input type="text" id="b-loc" placeholder="เช่น KP 0.000 (PTTEP SP ↔ PH3)" list="bondboxList" autocomplete="off" />
-      <datalist id="bondboxList"></datalist>
+      <select id="b-loc-select"></select>
+      <input type="text" id="b-loc-new" placeholder="พิมพ์จุดใหม่ เช่น KP 0.000 (PTTEP SP ↔ PH3)" style="display:none;" />
 
       <div class="grid2">
         <div>
@@ -371,8 +371,8 @@
     <div id="form-decoupler" class="formPane" style="display:none;">
     <div class="card">
       <span class="label">Tag No. — เลือกจาก list หรือพิมพ์ใหม่ได้เลยถ้ามีอุปกรณ์เพิ่ม</span>
-      <input type="text" id="d-tag" placeholder="เช่น PCR 10314" list="decouplerList" autocomplete="off" />
-      <datalist id="decouplerList"></datalist>
+      <select id="d-tag-select"></select>
+      <input type="text" id="d-tag-new" placeholder="พิมพ์ Tag ใหม่ เช่น PCR 10314" style="display:none;" />
 
       <span class="label">Protected Equipment</span>
       <input type="text" id="d-protected" placeholder="เช่น Isolating Joint" />
@@ -415,8 +415,8 @@
     <div id="form-insjoint" class="formPane" style="display:none;">
     <div class="card">
       <span class="label">Tag No. — เลือกจาก list หรือพิมพ์ใหม่ได้เลยถ้ามีอุปกรณ์เพิ่ม</span>
-      <input type="text" id="j-tag" placeholder="เช่น PHM-INJ-001" list="insjointList" autocomplete="off" />
-      <datalist id="insjointList"></datalist>
+      <select id="j-tag-select"></select>
+      <input type="text" id="j-tag-new" placeholder="พิมพ์ Tag ใหม่ เช่น PHM-INJ-001" style="display:none;" />
 
       <div class="grid2">
         <div>
@@ -463,8 +463,8 @@
     <div id="form-anode" class="formPane" style="display:none;">
     <div class="card">
       <span class="label">Tag / Location — เลือกจาก list หรือพิมพ์ใหม่ได้เลยถ้ามีเพิ่ม</span>
-      <input type="text" id="a-tag" placeholder="เช่น PHM-GB-100" list="anodeList" autocomplete="off" />
-      <datalist id="anodeList"></datalist>
+      <select id="a-tag-select"></select>
+      <input type="text" id="a-tag-new" placeholder="พิมพ์ Tag ใหม่ เช่น PHM-GB-100" style="display:none;" />
 
       <div class="grid2">
         <div>
@@ -841,26 +841,80 @@ function latLonToUTM(lat, lon) {
   return { n: northing, e: easting };
 }
 
+/* ---------- Generic "dropdown + add new" combo field helpers ---------- */
+/* Used for every KP/Tag lookup field across all 6 tabs: a <select> for fast tap-to-pick,
+   with a trailing "+ เพิ่มรายการใหม่..." option that reveals a free-text input. */
+function getComboValue(selectId, newId){
+  const sel = document.getElementById(selectId);
+  if (sel.value === '__new__') return document.getElementById(newId).value.trim();
+  return sel.value;
+}
+function setComboValue(selectId, newId, value){
+  const sel = document.getElementById(selectId);
+  const newInput = document.getElementById(newId);
+  const exists = Array.from(sel.options).some(o => o.value === value);
+  if (exists) { sel.value = value; newInput.style.display = 'none'; newInput.value = ''; }
+  else { sel.value = '__new__'; newInput.style.display = 'block'; newInput.value = value; }
+}
+function resetCombo(selectId, newId){
+  document.getElementById(selectId).value = '';
+  const newInput = document.getElementById(newId);
+  newInput.style.display = 'none';
+  newInput.value = '';
+}
+function setupCombo(selectId, newId, onValueChange){
+  const sel = document.getElementById(selectId);
+  const newInput = document.getElementById(newId);
+  sel.addEventListener('change', () => {
+    if (sel.value === '__new__') {
+      newInput.style.display = 'block';
+      newInput.value = '';
+      newInput.focus();
+    } else {
+      newInput.style.display = 'none';
+      newInput.value = '';
+    }
+    onValueChange(getComboValue(selectId, newId));
+  });
+  newInput.addEventListener('input', () => onValueChange(getComboValue(selectId, newId)));
+}
+/* Fills a <select> with {value,label} option pairs plus the trailing "add new" option, preserving current selection if still valid. */
+function populateComboOptions(selectId, items, placeholder){
+  const sel = document.getElementById(selectId);
+  const prevValue = sel.value;
+  sel.innerHTML = '';
+  const ph = document.createElement('option');
+  ph.value = ''; ph.textContent = placeholder || '— เลือก —';
+  sel.appendChild(ph);
+  items.forEach(({value, label}) => {
+    const opt = document.createElement('option');
+    opt.value = value; opt.textContent = label ? `${value} — ${label}` : value;
+    sel.appendChild(opt);
+  });
+  const addOpt = document.createElement('option');
+  addOpt.value = '__new__'; addOpt.textContent = '➕ เพิ่มรายการใหม่...';
+  sel.appendChild(addOpt);
+  if (Array.from(sel.options).some(o => o.value === prevValue)) sel.value = prevValue;
+}
+
 let kpLocMap = {};  // "asset||kp" -> location
 let kpTypeMap = {}; // "asset||kp" -> test post type
 let geoIndex = []; // [{kp, loc, n, e}] for the currently selected asset (ref + learned history)
 
 async function refreshKpList(){
   const asset = document.getElementById('f-asset').value;
-  const dl = document.getElementById('kpList');
   const locDl = document.getElementById('locList');
-  dl.innerHTML = ''; locDl.innerHTML = '';
+  locDl.innerHTML = '';
   kpLocMap = {}; kpTypeMap = {}; geoIndex = [];
   document.getElementById('f-posttype-display').textContent = '–';
 
   const seenLoc = new Set();
+  const kpItems = [];
   const ref = REF_STATIONS[asset] || [];
   ref.forEach(([kp, loc, n, e, postType]) => {
     kpLocMap[asset+'||'+kp] = loc;
     if (postType) kpTypeMap[asset+'||'+kp] = postType;
-    const opt = document.createElement('option');
-    opt.value = kp; opt.label = loc;
-    dl.appendChild(opt);
+    kpItems.push({ value: kp, label: loc });
     if (loc && !seenLoc.has(loc)) { seenLoc.add(loc); const o2=document.createElement('option'); o2.value=loc; locDl.appendChild(o2); }
     if (n && e) geoIndex.push({ kp, loc, n, e });
   });
@@ -872,9 +926,7 @@ async function refreshKpList(){
     records.filter(r => r.asset === asset).forEach(r => {
       if (r.kp && !seenKp.has(r.kp)) {
         seenKp.add(r.kp);
-        const opt = document.createElement('option');
-        opt.value = r.kp; opt.label = r.location || '';
-        dl.appendChild(opt);
+        kpItems.push({ value: r.kp, label: r.location || '' });
         if (r.kp && r.location) kpLocMap[asset+'||'+r.kp] = r.location;
       }
       if (r.location && !seenLoc.has(r.location)) {
@@ -887,6 +939,8 @@ async function refreshKpList(){
       }
     });
   } catch(e) { /* db not ready yet on first paint, ignore */ }
+
+  populateComboOptions('f-kp-select', kpItems, '— เลือก KP —');
 }
 document.getElementById('f-asset').addEventListener('change', refreshKpList);
 
@@ -910,8 +964,8 @@ function renderNearest(lat, lng){
     btn.className = 'near-item' + (i===0 ? ' closest' : '');
     btn.innerHTML = `<span><b>KP ${escapeHtml(s.kp)}</b> ${escapeHtml(s.loc||'')}</span><span class="dist">~${Math.round(s.dist)} m</span>`;
     btn.addEventListener('click', () => {
-      document.getElementById('f-kp').value = s.kp;
-      applyKpMatch();
+      setComboValue('f-kp-select', 'f-kp-new', s.kp);
+      applyKpMatch(s.kp);
       toast('✅ เติมจุด KP ' + s.kp + ' ให้แล้ว');
     });
     list.appendChild(btn);
@@ -920,9 +974,9 @@ function renderNearest(lat, lng){
 }
 
 // changing KP always clears stale Location/Post-type first, then re-fills only if the new KP matches a known station
-function applyKpMatch(){
+function applyKpMatch(kpOverride){
   const asset = document.getElementById('f-asset').value;
-  const kp = document.getElementById('f-kp').value.trim();
+  const kp = kpOverride !== undefined ? kpOverride : getComboValue('f-kp-select', 'f-kp-new');
   const locField = document.getElementById('f-location');
   const typeDisplay = document.getElementById('f-posttype-display');
   locField.value = '';
@@ -931,7 +985,7 @@ function applyKpMatch(){
   const typeMatch = kpTypeMap[asset+'||'+kp];
   typeDisplay.textContent = typeMatch || '–';
 }
-document.getElementById('f-kp').addEventListener('input', applyKpMatch);
+setupCombo('f-kp-select', 'f-kp-new', applyKpMatch);
 
 /* ---------- Form-type switcher (Test Station / Transformer, more to come) ---------- */
 let currentFormType = 'test_station';
@@ -949,36 +1003,33 @@ document.querySelectorAll('.formtab').forEach(btn => {
 let equipMap = {}; // tag -> {kp, location, structure, rating}
 
 async function refreshEquipList(){
-  const dl = document.getElementById('equipList');
-  dl.innerHTML = '';
   equipMap = {};
   const seenTag = new Set();
+  const items = [];
   REF_TRANSFORMERS.forEach(t => {
     equipMap[t.tag] = t;
     seenTag.add(t.tag);
-    const opt = document.createElement('option');
-    opt.value = t.tag; opt.label = t.location;
-    dl.appendChild(opt);
+    items.push({ value: t.tag, label: t.location });
   });
   try {
     const records = await getAllRecords();
     records.filter(r => r.formType === 'transformer' && r.equip && !seenTag.has(r.equip)).forEach(r => {
       seenTag.add(r.equip);
-      const opt = document.createElement('option');
-      opt.value = r.equip; opt.label = r.location || '';
-      dl.appendChild(opt);
+      items.push({ value: r.equip, label: r.location || '' });
     });
   } catch(e) { /* db not ready yet */ }
+  populateComboOptions('t-equip-select', items, '— เลือกอุปกรณ์ —');
 }
 
-document.getElementById('t-equip').addEventListener('input', () => {
-  const tag = document.getElementById('t-equip').value.trim();
+function applyEquipMatch(tagOverride){
+  const tag = tagOverride !== undefined ? tagOverride : getComboValue('t-equip-select', 't-equip-new');
   const match = equipMap[tag];
   document.getElementById('t-kp').value = match ? match.kp : '';
   document.getElementById('t-location').value = match ? match.location : '';
   document.getElementById('t-structure').value = match ? match.structure : '';
   document.getElementById('t-rating').value = match ? match.rating : '';
-});
+}
+setupCombo('t-equip-select', 't-equip-new', applyEquipMatch);
 
 /* ---------- Bond Box location autocomplete + auto-fill ---------- */
 const REF_BONDBOX = [
@@ -991,34 +1042,31 @@ const REF_BONDBOX = [
 let bondboxMap = {};
 
 async function refreshBondboxList(){
-  const dl = document.getElementById('bondboxList');
-  dl.innerHTML = '';
   bondboxMap = {};
   const seen = new Set();
+  const items = [];
   REF_BONDBOX.forEach(b => {
     bondboxMap[b.loc] = b;
     seen.add(b.loc);
-    const opt = document.createElement('option');
-    opt.value = b.loc;
-    dl.appendChild(opt);
+    items.push({ value: b.loc });
   });
   try {
     const records = await getAllRecords();
     records.filter(r => r.formType === 'bondbox' && r.loc && !seen.has(r.loc)).forEach(r => {
       seen.add(r.loc);
-      const opt = document.createElement('option');
-      opt.value = r.loc;
-      dl.appendChild(opt);
+      items.push({ value: r.loc });
     });
   } catch(e) { /* db not ready yet */ }
+  populateComboOptions('b-loc-select', items, '— เลือกจุดวัด —');
 }
 
-document.getElementById('b-loc').addEventListener('input', () => {
-  const loc = document.getElementById('b-loc').value.trim();
+function applyBondboxMatch(locOverride){
+  const loc = locOverride !== undefined ? locOverride : getComboValue('b-loc-select', 'b-loc-new');
   const match = bondboxMap[loc];
   document.getElementById('b-structA').value = match ? match.structA : '';
   document.getElementById('b-structB').value = match ? match.structB : '';
-});
+}
+setupCombo('b-loc-select', 'b-loc-new', applyBondboxMatch);
 
 /* ---------- DC Decoupler tag autocomplete + auto-fill ---------- */
 const REF_DECOUPLER = [
@@ -1037,34 +1085,31 @@ const REF_DECOUPLER = [
 let decouplerMap = {};
 
 async function refreshDecouplerList(){
-  const dl = document.getElementById('decouplerList');
-  dl.innerHTML = '';
   decouplerMap = {};
   const seen = new Set();
+  const items = [];
   REF_DECOUPLER.forEach(d => {
     decouplerMap[d.tag] = d;
     seen.add(d.tag);
-    const opt = document.createElement('option');
-    opt.value = d.tag; opt.label = d.location;
-    dl.appendChild(opt);
+    items.push({ value: d.tag, label: d.location });
   });
   try {
     const records = await getAllRecords();
     records.filter(r => r.formType === 'decoupler' && r.tag && !seen.has(r.tag)).forEach(r => {
       seen.add(r.tag);
-      const opt = document.createElement('option');
-      opt.value = r.tag; opt.label = r.location || '';
-      dl.appendChild(opt);
+      items.push({ value: r.tag, label: r.location || '' });
     });
   } catch(e) { /* db not ready yet */ }
+  populateComboOptions('d-tag-select', items, '— เลือก Tag No. —');
 }
 
-document.getElementById('d-tag').addEventListener('input', () => {
-  const tag = document.getElementById('d-tag').value.trim();
+function applyDecouplerMatch(tagOverride){
+  const tag = tagOverride !== undefined ? tagOverride : getComboValue('d-tag-select', 'd-tag-new');
   const match = decouplerMap[tag];
   document.getElementById('d-protected').value = match ? match.protected : '';
   document.getElementById('d-location').value = match ? match.location : '';
-});
+}
+setupCombo('d-tag-select', 'd-tag-new', applyDecouplerMatch);
 
 /* ---------- Insulating Joint tag autocomplete + auto-fill ---------- */
 const REF_INSJOINT = [
@@ -1086,34 +1131,31 @@ const REF_INSJOINT = [
 let insjointMap = {};
 
 async function refreshInsjointList(){
-  const dl = document.getElementById('insjointList');
-  dl.innerHTML = '';
   insjointMap = {};
   const seen = new Set();
+  const items = [];
   REF_INSJOINT.forEach(j => {
     insjointMap[j.tag] = j;
     seen.add(j.tag);
-    const opt = document.createElement('option');
-    opt.value = j.tag; opt.label = j.location;
-    dl.appendChild(opt);
+    items.push({ value: j.tag, label: j.location });
   });
   try {
     const records = await getAllRecords();
     records.filter(r => r.formType === 'insjoint' && r.tag && !seen.has(r.tag)).forEach(r => {
       seen.add(r.tag);
-      const opt = document.createElement('option');
-      opt.value = r.tag; opt.label = r.location || '';
-      dl.appendChild(opt);
+      items.push({ value: r.tag, label: r.location || '' });
     });
   } catch(e) { /* db not ready yet */ }
+  populateComboOptions('j-tag-select', items, '— เลือก Tag No. —');
 }
 
-document.getElementById('j-tag').addEventListener('input', () => {
-  const tag = document.getElementById('j-tag').value.trim();
+function applyInsjointMatch(tagOverride){
+  const tag = tagOverride !== undefined ? tagOverride : getComboValue('j-tag-select', 'j-tag-new');
   const match = insjointMap[tag];
   document.getElementById('j-type').value = match ? match.type : 'Isolating Joint';
   document.getElementById('j-location').value = match ? match.location : '';
-});
+}
+setupCombo('j-tag-select', 'j-tag-new', applyInsjointMatch);
 
 function updateInsjointReadout(){
   const vs = parseFloat(document.getElementById('j-vs').value);
@@ -1141,34 +1183,31 @@ const REF_ANODE = [
 let anodeMap = {};
 
 async function refreshAnodeList(){
-  const dl = document.getElementById('anodeList');
-  dl.innerHTML = '';
   anodeMap = {};
   const seen = new Set();
+  const items = [];
   REF_ANODE.forEach(a => {
     anodeMap[a.tag] = a;
     seen.add(a.tag);
-    const opt = document.createElement('option');
-    opt.value = a.tag; opt.label = a.location;
-    dl.appendChild(opt);
+    items.push({ value: a.tag, label: a.location });
   });
   try {
     const records = await getAllRecords();
     records.filter(r => r.formType === 'anode' && r.tag && !seen.has(r.tag)).forEach(r => {
       seen.add(r.tag);
-      const opt = document.createElement('option');
-      opt.value = r.tag; opt.label = r.location || '';
-      dl.appendChild(opt);
+      items.push({ value: r.tag, label: r.location || '' });
     });
   } catch(e) { /* db not ready yet */ }
+  populateComboOptions('a-tag-select', items, '— เลือก Tag / Location —');
 }
 
-document.getElementById('a-tag').addEventListener('input', () => {
-  const tag = document.getElementById('a-tag').value.trim();
+function applyAnodeMatch(tagOverride){
+  const tag = tagOverride !== undefined ? tagOverride : getComboValue('a-tag-select', 'a-tag-new');
   const match = anodeMap[tag];
   document.getElementById('a-location').value = match ? match.location : '';
   document.getElementById('a-type').value = match ? match.type : 'Impressed current groundbed';
-});
+}
+setupCombo('a-tag-select', 'a-tag-new', applyAnodeMatch);
 
 /* ---------- Shunt-based current calculators ---------- */
 function updateTransformerShuntCalc(){
@@ -1199,7 +1238,7 @@ function updateAnodeCalc(){
 
 /* ---------- Fetch latest Vdc from the linked Transformer/Rectifier ---------- */
 document.getElementById('btnFetchVdc').addEventListener('click', async () => {
-  const tag = document.getElementById('a-tag').value.trim();
+  const tag = getComboValue('a-tag-select', 'a-tag-new');
   const info = anodeMap[tag];
   if (!info || !info.rectifierTag) { toast('⚠️ ไม่พบเรคติไฟเออร์ที่เชื่อมกับจุดนี้ (อาจเป็น Sacrificial anode ที่ไม่มี Vdc)'); return; }
   const records = await getAllRecords();
@@ -1226,27 +1265,37 @@ document.getElementById('f-off').addEventListener('input', updateReadout);
 
 /* ---------- GPS capture ---------- */
 let currentGps = null;
-document.getElementById('btnGps').addEventListener('click', () => {
-  const box = document.getElementById('gpsTxt');
-  box.textContent = 'กำลังจับพิกัด...'; box.classList.remove('got');
-  if (!navigator.geolocation) { box.textContent = 'อุปกรณ์นี้ไม่รองรับ GPS'; return; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    currentGps = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
-    box.textContent = `${currentGps.lat.toFixed(6)}, ${currentGps.lng.toFixed(6)} (±${Math.round(currentGps.acc)}m)`;
-    box.classList.add('got');
-    renderNearest(currentGps.lat, currentGps.lng);
-  }, err => {
-    box.textContent = 'จับพิกัดไม่สำเร็จ: ' + err.message;
-  }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
-});
+function captureGps(){
+  return new Promise((resolve) => {
+    const box = document.getElementById('gpsTxt');
+    box.textContent = 'กำลังจับพิกัด...'; box.classList.remove('got');
+    if (!navigator.geolocation) { box.textContent = 'อุปกรณ์นี้ไม่รองรับ GPS'; resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      currentGps = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
+      box.textContent = `${currentGps.lat.toFixed(6)}, ${currentGps.lng.toFixed(6)} (±${Math.round(currentGps.acc)}m)`;
+      box.classList.add('got');
+      renderNearest(currentGps.lat, currentGps.lng);
+      resolve(currentGps);
+    }, err => {
+      box.textContent = 'จับพิกัดไม่สำเร็จ: ' + err.message;
+      resolve(null);
+    }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+  });
+}
+document.getElementById('btnGps').addEventListener('click', () => { captureGps(); });
 
-/* ---------- Photo capture (resized client-side) ---------- */
+/* ---------- Photo capture (resized + stamped with date/GPS client-side) ---------- */
 let currentPhotos = [];
 document.getElementById('btnPhoto').addEventListener('click', () => document.getElementById('f-photo').click());
 document.getElementById('f-photo').addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  if (!currentGps) { toast('📍 กำลังจับพิกัดให้อัตโนมัติ...'); await captureGps(); }
+  const stampLines = currentGps
+    ? [ new Date().toLocaleString('th-TH'), `${currentGps.lat.toFixed(6)}, ${currentGps.lng.toFixed(6)}` ]
+    : [ new Date().toLocaleString('th-TH') ];
   for (const file of files) {
-    const dataUrl = await resizeImage(file, 1280, 0.72);
+    const dataUrl = await resizeImage(file, 1280, 0.72, stampLines);
     currentPhotos.push(dataUrl);
   }
   renderPhotoPreview();
@@ -1263,7 +1312,7 @@ function renderPhotoPreview(){
     wrap.appendChild(img);
   });
 }
-function resizeImage(file, maxDim, quality) {
+function resizeImage(file, maxDim, quality, stampLines) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const reader = new FileReader();
@@ -1275,7 +1324,24 @@ function resizeImage(file, maxDim, quality) {
       else if (height > maxDim) { width = width*maxDim/height; height = maxDim; }
       const canvas = document.createElement('canvas');
       canvas.width = width; canvas.height = height;
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      if (stampLines && stampLines.length) {
+        const fontSize = Math.max(12, Math.round(width / 42));
+        const lineHeight = fontSize + 6;
+        const padding = 8;
+        const barHeight = lineHeight * stampLines.length + padding;
+        ctx.font = `${fontSize}px sans-serif`;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, height - barHeight, width, barHeight);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textBaseline = 'top';
+        stampLines.forEach((line, i) => {
+          ctx.fillText(line, padding, height - barHeight + padding/2 + i * lineHeight);
+        });
+      }
+
       let dataUrl = canvas.toDataURL('image/jpeg', quality);
       // safety net: keep every photo comfortably under Firestore's 1MB-per-document limit
       if (dataUrl.length > 900000) {
@@ -1297,7 +1363,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
     rec = {
       id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
       formType: 'transformer',
-      equip: val('t-equip'), kp: val('t-kp'), location: val('t-location'), structure: val('t-structure'),
+      equip: getComboValue('t-equip-select','t-equip-new'), kp: val('t-kp'), location: val('t-location'), structure: val('t-structure'),
       dcVoltage: numval('t-dcv'), acVoltage: numval('t-acv'), dcCurrent: numval('t-dci'), acCurrent: numval('t-aci'),
       vShunt: numval('t-vshunt'), shuntRatio: numval('t-shuntratio'),
       tap: val('t-tap'), rating: val('t-rating'),
@@ -1310,7 +1376,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
     rec = {
       id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
       formType: 'bondbox',
-      loc: val('b-loc'), structA: val('b-structA'), structB: val('b-structB'),
+      loc: getComboValue('b-loc-select','b-loc-new'), structA: val('b-structA'), structB: val('b-structB'),
       aOn: numval('b-aOn'), aOff: numval('b-aOff'), bOn: numval('b-bOn'), bOff: numval('b-bOff'),
       bondCurrent: numval('b-current'), direction: val('b-direction'), bondingType: val('b-type'),
       resistor: numval('b-resistor'),
@@ -1322,7 +1388,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
     rec = {
       id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
       formType: 'decoupler',
-      tag: val('d-tag'), protected: val('d-protected'), location: val('d-location'),
+      tag: getComboValue('d-tag-select','d-tag-new'), protected: val('d-protected'), location: val('d-location'),
       dvac: numval('d-dvac'), iac: numval('d-iac'), dvdc: numval('d-dvdc'), idc: numval('d-idc'),
       func: val('d-function'),
       remark: val('d-remark'),
@@ -1333,7 +1399,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
     rec = {
       id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
       formType: 'insjoint',
-      tag: val('j-tag'), type: val('j-type'), location: val('j-location'),
+      tag: getComboValue('j-tag-select','j-tag-new'), type: val('j-type'), location: val('j-location'),
       vs: numval('j-vs'), vp: numval('j-vp'), checker: val('j-checker'),
       remark: val('j-remark'),
       gps: currentGps, photos: currentPhotos, exported: false
@@ -1343,7 +1409,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
     rec = {
       id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
       formType: 'anode',
-      tag: val('a-tag'), location: val('a-location'), type: val('a-type'),
+      tag: getComboValue('a-tag-select','a-tag-new'), location: val('a-location'), type: val('a-type'),
       output: numval('a-output'), func: val('a-function'),
       current: numval('a-current'), resistance: numval('a-resistance'),
       vShunt: numval('a-vshunt'), shuntRatio: numval('a-shuntratio'),
@@ -1355,7 +1421,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
     rec = {
       id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
       formType: 'test_station',
-      asset: val('f-asset'), kp: val('f-kp'),
+      asset: val('f-asset'), kp: getComboValue('f-kp-select','f-kp-new'),
       postType: document.getElementById('f-posttype-display').textContent === '–' ? '' : document.getElementById('f-posttype-display').textContent,
       location: val('f-location'),
       onDC: numval('f-on'), offDC: numval('f-off'), ac: numval('f-ac'),
@@ -1380,13 +1446,19 @@ document.getElementById('btnSave').addEventListener('click', async () => {
 function val(id){ return document.getElementById(id).value.trim(); }
 function numval(id){ const v = document.getElementById(id).value; return v===''? null : parseFloat(v); }
 function clearForm(){
-  ['f-kp','f-location','f-on','f-off','f-ac','f-remark',
-   't-equip','t-kp','t-location','t-structure','t-dcv','t-acv','t-dci','t-aci','t-vshunt','t-shuntratio','t-tap','t-rating','t-pson','t-psoff','t-remark',
-   'b-loc','b-structA','b-structB','b-aOn','b-aOff','b-bOn','b-bOff','b-current','b-resistor','b-remark',
-   'd-tag','d-protected','d-location','d-dvac','d-iac','d-dvdc','d-idc','d-remark',
-   'j-tag','j-location','j-vs','j-vp','j-remark',
-   'a-tag','a-location','a-output','a-current','a-resistance','a-vshunt','a-shuntratio','a-remark'
+  ['f-location','f-on','f-off','f-ac','f-remark',
+   't-kp','t-location','t-structure','t-dcv','t-acv','t-dci','t-aci','t-vshunt','t-shuntratio','t-tap','t-rating','t-pson','t-psoff','t-remark',
+   'b-structA','b-structB','b-aOn','b-aOff','b-bOn','b-bOff','b-current','b-resistor','b-remark',
+   'd-protected','d-location','d-dvac','d-iac','d-dvdc','d-idc','d-remark',
+   'j-location','j-vs','j-vp','j-remark',
+   'a-location','a-output','a-current','a-resistance','a-vshunt','a-shuntratio','a-remark'
   ].forEach(id => document.getElementById(id).value='');
+  resetCombo('f-kp-select','f-kp-new');
+  resetCombo('t-equip-select','t-equip-new');
+  resetCombo('b-loc-select','b-loc-new');
+  resetCombo('d-tag-select','d-tag-new');
+  resetCombo('j-tag-select','j-tag-new');
+  resetCombo('a-tag-select','a-tag-new');
   document.getElementById('j-ro-vs').textContent = '–';
   document.getElementById('j-ro-vp').textContent = '–';
   document.getElementById('j-ro-diff').textContent = '–';
