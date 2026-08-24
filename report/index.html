@@ -104,6 +104,8 @@
       <div class="toolbar">
         <select id="assetFilter"></select>
         <button class="btn teal" id="btnXlsx">⬇️ Export Excel รวม (.xlsx)</button>
+        <button class="btn primary" id="btnAppendix">📄 Export Appendix (Word)</button>
+        <button class="btn primary" id="btnAppendixPdf">🖨️ Export Appendix (PDF)</button>
         <button class="btn" id="btnJson">⬇️ Export JSON รวม (ไว้สำรอง)</button>
         <button class="btn" id="btnZip">⬇️ Export รูปภาพทั้งหมด (.zip)</button>
       </div>
@@ -186,9 +188,9 @@ document.getElementById('btnRefreshCloud').addEventListener('click', () => {
 });
 listenCloud();
 
-document.getElementById('btnFetchPhotos').addEventListener('click', async () => {
+async function fetchMissingCloudPhotos(){
   const targets = Array.from(merged.values()).filter(r => cloudIds.has(r.id) && r.hasPhotos && (!r.photos || !r.photos.length));
-  if (!targets.length) { alert('ไม่มีรูปใหม่ที่ต้องดึงเพิ่ม (ดึงมาครบแล้ว หรือยังไม่มีรายการที่มีรูปในคลาวด์)'); return; }
+  if (!targets.length) return 0;
   let done = 0;
   setCloudStatus(`📸 กำลังดึงรูป... 0/${targets.length}`);
   for (const r of targets) {
@@ -200,6 +202,12 @@ document.getElementById('btnFetchPhotos').addEventListener('click', async () => 
     setCloudStatus(`📸 กำลังดึงรูป... ${done}/${targets.length}`);
   }
   setCloudStatus(`☁️ เชื่อมต่อคลาวด์แล้ว — ${cloudIds.size} รายการจากทีม (ดึงรูปแล้ว ${done} รายการ)`);
+  return done;
+}
+
+document.getElementById('btnFetchPhotos').addEventListener('click', async () => {
+  const n = await fetchMissingCloudPhotos();
+  if (n === 0) alert('ไม่มีรูปใหม่ที่ต้องดึงเพิ่ม (ดึงมาครบแล้ว หรือยังไม่มีรายการที่มีรูปในคลาวด์)');
   render();
 });
 
@@ -345,6 +353,105 @@ document.getElementById('btnJson').addEventListener('click', () => {
   a.href = URL.createObjectURL(blob);
   a.download = 'CP_Merged_' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
+});
+
+/* ---------- Export Appendix (Word / PDF) — grouped by tab, 2-column photo layout like the original report ---------- */
+const GROUP_TITLES = {
+  test_station: 'Cathodic Protection Inspection Pictures',
+  transformer: 'Transformer Rectifier Inspection Pictures',
+  bondbox: 'Bondbox Inspection Pictures',
+  decoupler: 'DC Decoupler Inspection Pictures',
+  insjoint: 'Insulating Joint Inspection Pictures',
+  anode: 'Anode Groundbed Inspection Pictures'
+};
+const GROUP_ORDER = ['test_station','transformer','bondbox','decoupler','insjoint','anode'];
+
+function getRecordLabel(r){
+  switch (r.formType){
+    case 'transformer': return 'Location : ' + (r.equip || r.location || '-');
+    case 'bondbox': return 'Location : ' + (r.loc || '-');
+    case 'decoupler': return 'Location : ' + (r.tag || '-');
+    case 'insjoint': return 'Location : ' + (r.tag || '-');
+    case 'anode': return 'Location : ' + (r.tag || '-');
+    default: return 'Location : KP ' + (r.kp || '-');
+  }
+}
+
+function buildAppendixBodyHtml(records){
+  let body = `<h1 style="font-family:Tahoma,Arial,sans-serif; font-size:22px;">CP Inspection Photo Appendix</h1>
+  <p style="font-family:Tahoma,Arial,sans-serif; color:#555;">สร้างเมื่อ ${new Date().toLocaleString('th-TH')}</p>`;
+  let any = false;
+
+  GROUP_ORDER.forEach(gt => {
+    const groupRecords = records.filter(r => (r.formType || 'test_station') === gt && r.photos && r.photos.length);
+    if (!groupRecords.length) return;
+    any = true;
+
+    groupRecords.sort((a, b) => {
+      const ak = parseFloat(a.kp), bk = parseFloat(b.kp);
+      if (!isNaN(ak) && !isNaN(bk)) return ak - bk;
+      return getRecordLabel(a).localeCompare(getRecordLabel(b));
+    });
+
+    body += `<h2 style="font-family:Tahoma,Arial,sans-serif; font-size:16px; color:#1F4E79; border-bottom:1px solid #ccc; padding-bottom:4px; margin-top:28px;">${escapeHtml(GROUP_TITLES[gt])}</h2>`;
+    body += `<table style="width:100%; border-collapse:collapse;" border="1" cellpadding="10" cellspacing="0">`;
+    for (let i = 0; i < groupRecords.length; i += 2) {
+      body += '<tr>';
+      [groupRecords[i], groupRecords[i+1]].forEach(r => {
+        if (!r) { body += '<td style="width:50%; border:1px solid #ccc;">&nbsp;</td>'; return; }
+        const imgs = r.photos.slice(0, 2).map(p => `<img src="${p}" style="width:260px; max-width:100%; height:auto; margin:2px; display:inline-block;" />`).join('');
+        body += `<td style="width:50%; vertical-align:top; text-align:center; border:1px solid #ccc; padding:10px;">
+          <p style="font-family:Tahoma,Arial,sans-serif; font-weight:bold; text-align:left; font-size:13px; margin:0 0 6px;">${escapeHtml(getRecordLabel(r))}</p>
+          ${imgs}
+        </td>`;
+      });
+      body += '</tr>';
+    }
+    body += '</table>';
+  });
+
+  return { html: body, any };
+}
+
+function getAppendixRecords(){
+  return Array.from(merged.values());
+}
+
+document.getElementById('btnAppendix').addEventListener('click', async () => {
+  await fetchMissingCloudPhotos();
+  render();
+  const { html, any } = buildAppendixBodyHtml(getAppendixRecords());
+  if (!any) return alert('ไม่มีรายการที่มีรูปภาพให้จัดทำ Appendix (ลองกดดึงรูปจากคลาวด์ก่อน)');
+
+  const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>CP Appendix</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+</head><body>${html}</body></html>`;
+
+  const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'CP_Appendix_' + new Date().toISOString().slice(0,10) + '.doc';
+  a.click();
+});
+
+document.getElementById('btnAppendixPdf').addEventListener('click', async () => {
+  await fetchMissingCloudPhotos();
+  render();
+  const { html, any } = buildAppendixBodyHtml(getAppendixRecords());
+  if (!any) return alert('ไม่มีรายการที่มีรูปภาพให้จัดทำ Appendix (ลองกดดึงรูปจากคลาวด์ก่อน)');
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('เบราว์เซอร์บล็อกป็อปอัป กรุณาอนุญาตแล้วลองใหม่'); return; }
+  win.document.write(`<html><head><meta charset="utf-8"><title>CP Appendix</title>
+  <style>
+    body{ font-family:Tahoma,Arial,sans-serif; }
+    table{ page-break-inside:auto; }
+    tr{ page-break-inside:avoid; page-break-after:auto; }
+    @media print { h2{ page-break-before:auto; } }
+  </style></head><body>${html}</body></html>`);
+  win.document.close();
+  win.onload = () => setTimeout(() => win.print(), 400);
 });
 
 document.getElementById('btnZip').addEventListener('click', async () => {
