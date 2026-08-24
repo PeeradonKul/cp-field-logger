@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0F1417" />
+<title>CP Field Logger — บันทึกค่า On/Off Potential</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<style>
+  :root{
+    --bg:#0F1417; --panel:#161E22; --panel2:#1B2529; --border:#2A353A;
+    --text:#F2F5F5; --muted:#8FA0A5; --on:#2DD4BF; --off:#FF6A13;
+    --good:#22C55E; --warn:#F59E0B; --bad:#EF4444;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--sans); height:100%;}
+  body{padding-bottom:78px; overscroll-behavior-y:none;}
+  h1,h2,h3{font-weight:700; letter-spacing:.2px; margin:0 0 4px;}
+  header.top{
+    position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#0F1417 80%,rgba(15,20,23,0));
+    padding:16px 16px 10px; display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  header.top .brand{display:flex; align-items:center; gap:10px;}
+  .ring{width:30px;height:30px;border-radius:50%;border:3px solid var(--off);position:relative;flex:none;}
+  .ring::after{content:"";position:absolute;left:50%;top:15%;bottom:15%;width:5px;transform:translateX(-50%);background:var(--on);border-radius:2px;}
+  .brand h1{font-size:16px;}
+  .brand small{color:var(--muted); font-size:11px;}
+  .status-pill{font-size:11px; padding:5px 10px; border-radius:999px; border:1px solid var(--border); color:var(--muted); display:flex; align-items:center; gap:6px; font-family:var(--mono);}
+  .dot{width:7px;height:7px;border-radius:50%; background:var(--bad);}
+  .dot.on{background:var(--good);}
+  main{padding:0 16px 24px; max-width:640px; margin:0 auto;}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:14px;}
+  .label{font-size:12px; color:var(--muted); margin-bottom:6px; display:block; letter-spacing:.3px;}
+  select, input[type=text], input[type=number], textarea{
+    width:100%; background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    padding:12px 12px; border-radius:10px; font-size:15px; font-family:var(--sans); margin-bottom:12px;
+  }
+  input[type=number]{font-family:var(--mono);}
+  textarea{resize:vertical; min-height:60px;}
+  select:focus, input:focus, textarea:focus{outline:2px solid var(--on); outline-offset:1px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .readout{
+    background:#0B1012; border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:14px;
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; text-align:center;
+  }
+  .readout .v{font-family:var(--mono); font-size:22px; font-variant-numeric:tabular-nums;}
+  .readout .k{font-size:10px; color:var(--muted); letter-spacing:.5px; margin-top:2px;}
+  .readout .on .v{color:var(--on);}
+  .readout .off .v{color:var(--off);}
+  .readout .ir .v{color:var(--warn);}
+  button{font-family:var(--sans); cursor:pointer;}
+  .btn{
+    width:100%; padding:14px; border-radius:12px; border:1px solid var(--border); background:var(--panel2);
+    color:var(--text); font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;
+    margin-bottom:10px;
+  }
+  .btn.primary{background:var(--off); border-color:var(--off); color:#1a0e00;}
+  .btn.teal{background:var(--on); border-color:var(--on); color:#062421;}
+  .btn.ghost{background:transparent;}
+  .btn.small{padding:9px 12px; font-size:13px; width:auto;}
+  .btn:active{transform:scale(.98);}
+  .btn[disabled]{opacity:.45;}
+  .row{display:flex; gap:10px; align-items:center;}
+  .chip{font-size:11px; padding:3px 9px; border-radius:999px; border:1px solid var(--border); color:var(--muted); font-family:var(--mono);}
+  .chip.ok{color:var(--good); border-color:var(--good);}
+  .chip.pending{color:var(--warn); border-color:var(--warn);}
+  .thumb{width:56px;height:56px; border-radius:8px; object-fit:cover; border:1px solid var(--border); flex:none;}
+  .rec{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);}
+  .rec:last-child{border-bottom:none;}
+  .rec .meta{flex:1; min-width:0;}
+  .rec .meta .top-row{display:flex; justify-content:space-between; gap:8px;}
+  .rec .meta .title{font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rec .meta .sub{font-size:12px; color:var(--muted); font-family:var(--mono); margin-top:2px;}
+  .rec .del{background:none;border:none;color:var(--bad); font-size:12px; padding:6px;}
+  nav.tabs{
+    position:fixed; bottom:0; left:0; right:0; z-index:30; background:#0B1012; border-top:1px solid var(--border);
+    display:flex; padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+  }
+  nav.tabs button{
+    flex:1; background:none; border:none; color:var(--muted); font-size:11px; padding:8px 4px; border-radius:10px;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  nav.tabs button.active{color:var(--on); background:rgba(45,212,191,.08);}
+  nav.tabs svg{width:20px;height:20px;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .empty{text-align:center; color:var(--muted); padding:40px 10px; font-size:14px;}
+  .banner{
+    display:flex; gap:10px; align-items:flex-start; background:rgba(245,158,11,.1); border:1px solid var(--warn);
+    color:#FBBF24; padding:12px; border-radius:10px; font-size:13px; margin-bottom:14px;
+  }
+  .toast{
+    position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--good); color:#062412;
+    padding:10px 18px; border-radius:999px; font-size:13px; font-weight:600; z-index:50; box-shadow:0 6px 20px rgba(0,0,0,.4);
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .stat{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center;}
+  .stat .num{font-family:var(--mono); font-size:26px; color:var(--on);}
+  .stat .lbl{font-size:11px; color:var(--muted); margin-top:2px;}
+  .gps-box{display:flex; align-items:center; gap:10px; background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;}
+  .gps-box .txt{flex:1; font-family:var(--mono); font-size:12.5px; color:var(--muted);}
+  .gps-box .txt.got{color:var(--good);}
+  .photo-preview{display:flex; gap:8px; margin:-4px 0 12px; flex-wrap:wrap;}
+  .photo-preview img{width:64px;height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border);}
+  hr{border:none; border-top:1px solid var(--border); margin:14px 0;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="ring"></div>
+    <div>
+      <h1>CP Field Logger</h1>
+      <small>บันทึกค่า On/Off Potential ภาคสนาม</small>
+    </div>
+  </div>
+  <div class="status-pill" id="netStatus"><span class="dot" id="netDot"></span><span id="netTxt">OFFLINE</span></div>
+</header>
+
+<main>
+
+  <!-- ============ VIEW: NEW ENTRY ============ -->
+  <section class="view active" id="view-new">
+    <div class="banner" id="firstRunBanner" style="display:none;">
+      ⚠️ กรุณาตั้งชื่อผู้บันทึกก่อน ไปที่แท็บ “ตั้งค่า” ด้านล่าง
+    </div>
+
+    <div class="card">
+      <span class="label">ประเภทโครงสร้าง (Structure/Asset)</span>
+      <select id="f-asset">
+        <option>16" Sinphuhorm Pipeline</option>
+        <option>10" Production Flow Line PH3–PH5</option>
+        <option>10" Production Flow Line PH4–PH5</option>
+        <option>Condensate Tank A</option>
+        <option>Condensate Tank B</option>
+        <option>Fire Water Tank</option>
+        <option>GPP Buried Pipeline</option>
+        <option>Closed Drain Line</option>
+        <option>อื่นๆ</option>
+      </select>
+
+      <div class="grid2">
+        <div>
+          <span class="label">KP / จุดวัด</span>
+          <input type="text" id="f-kp" inputmode="decimal" placeholder="เช่น 21.194" />
+        </div>
+        <div>
+          <span class="label">Test post type</span>
+          <select id="f-posttype">
+            <option>A</option><option>AA</option><option>AR</option><option>E</option><option>-</option>
+          </select>
+        </div>
+      </div>
+
+      <span class="label">รายละเอียดตำแหน่ง (Location)</span>
+      <input type="text" id="f-location" placeholder="เช่น ใกล้ SBV-1 / ทุ่งนาบ้านโนนจิก" />
+
+      <div class="readout">
+        <div class="on"><div class="v" id="ro-on">–</div><div class="k">ON (V)</div></div>
+        <div class="off"><div class="v" id="ro-off">–</div><div class="k">OFF (V)</div></div>
+        <div class="ir"><div class="v" id="ro-ir">–</div><div class="k">IR DROP (V)</div></div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <span class="label">On Potential (V)</span>
+          <input type="number" step="0.001" id="f-on" placeholder="-1.35" />
+        </div>
+        <div>
+          <span class="label">Off Potential (V)</span>
+          <input type="number" step="0.001" id="f-off" placeholder="-0.72" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <span class="label">AC (V)</span>
+          <input type="number" step="0.001" id="f-ac" placeholder="0.04" />
+        </div>
+        <div>
+          <span class="label">Gas Leak (%LEL)</span>
+          <input type="number" step="0.1" id="f-gas" placeholder="0" />
+        </div>
+      </div>
+
+      <span class="label">สภาพดิน (Soil condition)</span>
+      <select id="f-soil">
+        <option value="D">Dry (D)</option>
+        <option value="W">Wet (W)</option>
+      </select>
+
+      <span class="label">หมายเหตุ (Remark)</span>
+      <textarea id="f-remark" placeholder="ข้อสังเกตเพิ่มเติม..."></textarea>
+    </div>
+
+    <div class="card">
+      <span class="label">พิกัด GPS</span>
+      <div class="gps-box">
+        <span class="txt" id="gpsTxt">ยังไม่ได้จับพิกัด</span>
+        <button class="btn small teal" id="btnGps" style="margin:0;">📍 จับพิกัด</button>
+      </div>
+
+      <span class="label">รูปถ่าย</span>
+      <div class="photo-preview" id="photoPreview"></div>
+      <input type="file" accept="image/*" capture="environment" id="f-photo" style="display:none" multiple />
+      <button class="btn ghost" id="btnPhoto" style="border-style:dashed;">📷 ถ่ายรูป / เลือกรูป</button>
+    </div>
+
+    <button class="btn primary" id="btnSave">💾 บันทึกรายการนี้</button>
+  </section>
+
+  <!-- ============ VIEW: RECORDS ============ -->
+  <section class="view" id="view-list">
+    <div class="stat-grid">
+      <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">รายการทั้งหมด</div></div>
+      <div class="stat"><div class="num" id="statPending">0</div><div class="lbl">ยังไม่ Export</div></div>
+    </div>
+    <div class="card" id="listCard">
+      <div class="empty">ยังไม่มีรายการที่บันทึก</div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: EXPORT ============ -->
+  <section class="view" id="view-export">
+    <div class="card">
+      <h3>ส่งออกไป OneDrive / คลาวด์</h3>
+      <p style="color:var(--muted); font-size:13px; line-height:1.6;">
+        ไฟล์ที่ export จะตั้งชื่อไม่ซ้ำกันทุกครั้ง (ตามอุปกรณ์ + เวลา) จึงวางรวมกับของเพื่อนร่วมทีมในโฟลเดอร์ OneDrive เดียวกันได้โดยไม่ทับกัน — ไปเปิดรวมข้อมูลทีหลังด้วย Report Studio บนคอม
+      </p>
+      <button class="btn teal" id="btnExportJson">⬇️ Export ไฟล์ JSON (สำหรับรวมทีม)</button>
+      <button class="btn ghost" id="btnExportXlsx">⬇️ Export Excel (.xlsx)</button>
+      <button class="btn ghost" id="btnExportCsv">⬇️ Export CSV</button>
+      <hr/>
+      <p style="color:var(--muted); font-size:12px;">
+        หลัง export ระบบจะทำเครื่องหมายรายการว่า “ส่งออกแล้ว” ให้อัตโนมัติ (ข้อมูลยังอยู่ในเครื่องเหมือนเดิม ไม่ได้ลบ)
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: SETTINGS ============ -->
+  <section class="view" id="view-settings">
+    <div class="card">
+      <span class="label">ชื่อผู้บันทึก</span>
+      <input type="text" id="s-name" placeholder="เช่น ช่างสมชาย" />
+      <button class="btn primary" id="btnSaveName">บันทึกชื่อ</button>
+      <hr/>
+      <span class="label">Device ID (สุ่มอัตโนมัติ ใช้กันไฟล์ชนกัน)</span>
+      <input type="text" id="s-device" disabled />
+      <hr/>
+      <button class="btn ghost" id="btnClearSynced">🧹 ลบเฉพาะรายการที่ Export แล้ว</button>
+      <button class="btn ghost" id="btnClearAll" style="color:var(--bad); border-color:var(--bad);">🗑️ ลบข้อมูลทั้งหมดในเครื่อง</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-view="view-new">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    บันทึกใหม่
+  </button>
+  <button class="tab-btn" data-view="view-list">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    รายการ
+  </button>
+  <button class="tab-btn" data-view="view-export">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+    Export
+  </button>
+  <button class="tab-btn" data-view="view-settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.2.63.77 1.05 1.42 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    ตั้งค่า
+  </button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ---------- Register service worker ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+/* ---------- IndexedDB helper ---------- */
+const DB_NAME = 'cp-field-logger';
+const DB_VERSION = 1;
+let dbp = new Promise((resolve, reject) => {
+  const req = indexedDB.open(DB_NAME, DB_VERSION);
+  req.onupgradeneeded = (e) => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains('records')) {
+      db.createObjectStore('records', { keyPath: 'id' });
+    }
+    if (!db.objectStoreNames.contains('settings')) {
+      db.createObjectStore('settings', { keyPath: 'key' });
+    }
+  };
+  req.onsuccess = (e) => resolve(e.target.result);
+  req.onerror = (e) => reject(e);
+});
+
+async function idb(storeName, mode, fn) {
+  const db = await dbp;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, mode);
+    const store = tx.objectStore(storeName);
+    const result = fn(store);
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function reqToPromise(req){ return new Promise((res,rej)=>{ req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error); }); }
+
+async function getSetting(key, def) {
+  const db = await dbp;
+  const tx = db.transaction('settings','readonly');
+  const val = await reqToPromise(tx.objectStore('settings').get(key));
+  return val ? val.value : def;
+}
+async function setSetting(key, value) {
+  const db = await dbp;
+  const tx = db.transaction('settings','readwrite');
+  tx.objectStore('settings').put({key, value});
+  return new Promise(res => tx.oncomplete = res);
+}
+async function addRecord(rec) {
+  const db = await dbp;
+  const tx = db.transaction('records','readwrite');
+  tx.objectStore('records').add(rec);
+  return new Promise(res => tx.oncomplete = res);
+}
+async function getAllRecords() {
+  const db = await dbp;
+  const tx = db.transaction('records','readonly');
+  return reqToPromise(tx.objectStore('records').getAll());
+}
+async function deleteRecord(id) {
+  const db = await dbp;
+  const tx = db.transaction('records','readwrite');
+  tx.objectStore('records').delete(id);
+  return new Promise(res => tx.oncomplete = res);
+}
+async function updateRecord(rec) {
+  const db = await dbp;
+  const tx = db.transaction('records','readwrite');
+  tx.objectStore('records').put(rec);
+  return new Promise(res => tx.oncomplete = res);
+}
+
+/* ---------- Device ID ---------- */
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+let DEVICE_ID, RECORDED_BY;
+
+/* ---------- Toast ---------- */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------- Network status ---------- */
+function updateNetStatus() {
+  const dot = document.getElementById('netDot');
+  const txt = document.getElementById('netTxt');
+  if (navigator.onLine) { dot.classList.add('on'); txt.textContent = 'ONLINE'; }
+  else { dot.classList.remove('on'); txt.textContent = 'OFFLINE'; }
+}
+window.addEventListener('online', updateNetStatus);
+window.addEventListener('offline', updateNetStatus);
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.view).classList.add('active');
+    if (btn.dataset.view === 'view-list') renderList();
+  });
+});
+
+/* ---------- Live readout ---------- */
+function fmt(n){ return (n===null||n===undefined||isNaN(n)) ? '–' : Number(n).toFixed(3); }
+function updateReadout(){
+  const on = parseFloat(document.getElementById('f-on').value);
+  const off = parseFloat(document.getElementById('f-off').value);
+  document.getElementById('ro-on').textContent = fmt(on);
+  document.getElementById('ro-off').textContent = fmt(off);
+  document.getElementById('ro-ir').textContent = (!isNaN(on) && !isNaN(off)) ? fmt(on-off) : '–';
+}
+document.getElementById('f-on').addEventListener('input', updateReadout);
+document.getElementById('f-off').addEventListener('input', updateReadout);
+
+/* ---------- GPS capture ---------- */
+let currentGps = null;
+document.getElementById('btnGps').addEventListener('click', () => {
+  const box = document.getElementById('gpsTxt');
+  box.textContent = 'กำลังจับพิกัด...'; box.classList.remove('got');
+  if (!navigator.geolocation) { box.textContent = 'อุปกรณ์นี้ไม่รองรับ GPS'; return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    currentGps = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
+    box.textContent = `${currentGps.lat.toFixed(6)}, ${currentGps.lng.toFixed(6)} (±${Math.round(currentGps.acc)}m)`;
+    box.classList.add('got');
+  }, err => {
+    box.textContent = 'จับพิกัดไม่สำเร็จ: ' + err.message;
+  }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+});
+
+/* ---------- Photo capture (resized client-side) ---------- */
+let currentPhotos = [];
+document.getElementById('btnPhoto').addEventListener('click', () => document.getElementById('f-photo').click());
+document.getElementById('f-photo').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  for (const file of files) {
+    const dataUrl = await resizeImage(file, 1280, 0.72);
+    currentPhotos.push(dataUrl);
+  }
+  renderPhotoPreview();
+  e.target.value = '';
+});
+function renderPhotoPreview(){
+  const wrap = document.getElementById('photoPreview');
+  wrap.innerHTML = '';
+  currentPhotos.forEach((src, i) => {
+    const img = document.createElement('img');
+    img.src = src;
+    img.title = 'แตะเพื่อลบ';
+    img.addEventListener('click', () => { currentPhotos.splice(i,1); renderPhotoPreview(); });
+    wrap.appendChild(img);
+  });
+}
+function resizeImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => { img.src = reader.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxDim) { height = height*maxDim/width; width = maxDim; }
+      else if (height > maxDim) { width = width*maxDim/height; height = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- Save entry ---------- */
+document.getElementById('btnSave').addEventListener('click', async () => {
+  if (!RECORDED_BY) { toast('⚠️ กรุณาตั้งชื่อผู้บันทึกในแท็บ "ตั้งค่า" ก่อน'); switchTab('view-settings'); return; }
+  const rec = {
+    id: uuid(),
+    deviceId: DEVICE_ID,
+    recordedBy: RECORDED_BY,
+    timestamp: new Date().toISOString(),
+    asset: val('f-asset'),
+    kp: val('f-kp'),
+    postType: val('f-posttype'),
+    location: val('f-location'),
+    onDC: numval('f-on'),
+    offDC: numval('f-off'),
+    ac: numval('f-ac'),
+    gasLeak: numval('f-gas'),
+    soil: val('f-soil'),
+    remark: val('f-remark'),
+    gps: currentGps,
+    photos: currentPhotos,
+    exported: false
+  };
+  if (!rec.kp && !rec.location) { toast('⚠️ กรอก KP หรือตำแหน่งอย่างน้อย 1 ช่อง'); return; }
+  await addRecord(rec);
+  toast('✅ บันทึกแล้ว (' + rec.kp + ')');
+  clearForm();
+});
+
+function val(id){ return document.getElementById(id).value.trim(); }
+function numval(id){ const v = document.getElementById(id).value; return v===''? null : parseFloat(v); }
+function clearForm(){
+  ['f-kp','f-location','f-on','f-off','f-ac','f-gas','f-remark'].forEach(id => document.getElementById(id).value='');
+  currentGps = null; currentPhotos = [];
+  document.getElementById('gpsTxt').textContent = 'ยังไม่ได้จับพิกัด';
+  document.getElementById('gpsTxt').classList.remove('got');
+  renderPhotoPreview();
+  updateReadout();
+}
+function switchTab(viewId){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===viewId));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id===viewId));
+  if (viewId==='view-list') renderList();
+}
+
+/* ---------- Records list ---------- */
+async function renderList(){
+  const records = (await getAllRecords()).sort((a,b)=> b.timestamp.localeCompare(a.timestamp));
+  document.getElementById('statTotal').textContent = records.length;
+  document.getElementById('statPending').textContent = records.filter(r=>!r.exported).length;
+  const card = document.getElementById('listCard');
+  if (records.length === 0) { card.innerHTML = '<div class="empty">ยังไม่มีรายการที่บันทึก</div>'; return; }
+  card.innerHTML = '';
+  records.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'rec';
+    const thumb = r.photos && r.photos[0] ? `<img class="thumb" src="${r.photos[0]}"/>` : `<div class="thumb" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">no photo</div>`;
+    div.innerHTML = `
+      ${thumb}
+      <div class="meta">
+        <div class="top-row">
+          <div class="title">${escapeHtml(r.kp || '-')} · ${escapeHtml(r.asset)}</div>
+          <span class="chip ${r.exported?'ok':'pending'}">${r.exported?'ส่งออกแล้ว':'รอส่งออก'}</span>
+        </div>
+        <div class="sub">ON ${fmt(r.onDC)} / OFF ${fmt(r.offDC)} · ${new Date(r.timestamp).toLocaleString('th-TH')}</div>
+        <div class="sub">${escapeHtml(r.recordedBy || '')}</div>
+      </div>
+      <button class="del" data-id="${r.id}">ลบ</button>
+    `;
+    card.appendChild(div);
+  });
+  card.querySelectorAll('.del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (confirm('ลบรายการนี้ถาวร?')) { await deleteRecord(btn.dataset.id); renderList(); }
+    });
+  });
+}
+function escapeHtml(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- Export ---------- */
+function download(filename, content, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportFilenameBase(){
+  const d = new Date();
+  const stamp = d.toISOString().replace(/[-:T]/g,'').slice(0,13);
+  return `cp_${(RECORDED_BY||'user').replace(/\s+/g,'')}_${DEVICE_ID.slice(0,8)}_${stamp}`;
+}
+document.getElementById('btnExportJson').addEventListener('click', async () => {
+  const records = await getAllRecords();
+  if (!records.length) return toast('ไม่มีข้อมูลให้ export');
+  download(exportFilenameBase()+'.json', JSON.stringify(records, null, 2), 'application/json');
+  await markExported(records);
+  toast('⬇️ Export JSON แล้ว — เอาไปวางในโฟลเดอร์ OneDrive ที่แชร์กับทีม');
+  renderList();
+});
+document.getElementById('btnExportCsv').addEventListener('click', async () => {
+  const records = await getAllRecords();
+  if (!records.length) return toast('ไม่มีข้อมูลให้ export');
+  const headers = ['id','recordedBy','timestamp','asset','kp','postType','location','onDC','offDC','ir_drop','ac','gasLeak','soil','remark','lat','lng','gps_acc','photo_count'];
+  const rows = records.map(r => [
+    r.id, r.recordedBy, r.timestamp, r.asset, r.kp, r.postType, r.location,
+    r.onDC, r.offDC, (r.onDC!=null && r.offDC!=null)? (r.onDC-r.offDC).toFixed(3):'',
+    r.ac, r.gasLeak, r.soil, (r.remark||'').replace(/\n/g,' '),
+    r.gps?r.gps.lat:'', r.gps?r.gps.lng:'', r.gps?r.gps.acc:'', (r.photos||[]).length
+  ].map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
+  const csv = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+  download(exportFilenameBase()+'.csv', csv, 'text/csv;charset=utf-8');
+  await markExported(records);
+  toast('⬇️ Export CSV แล้ว');
+  renderList();
+});
+document.getElementById('btnExportXlsx').addEventListener('click', async () => {
+  if (typeof XLSX === 'undefined') return toast('ต้องมีเน็ตครั้งแรกเพื่อโหลดตัว Excel engine (ครั้งต่อไปใช้ offline ได้)');
+  const records = await getAllRecords();
+  if (!records.length) return toast('ไม่มีข้อมูลให้ export');
+  const rows = records.map(r => ({
+    KP: r.kp, Asset: r.asset, Location: r.location, PostType: r.postType,
+    'On DC (V)': r.onDC, 'Off DC (V)': r.offDC,
+    'IR Drop (V)': (r.onDC!=null && r.offDC!=null)? +(r.onDC-r.offDC).toFixed(3) : '',
+    'AC (V)': r.ac, 'Gas Leak (%LEL)': r.gasLeak, Soil: r.soil, Remark: r.remark,
+    Lat: r.gps?r.gps.lat:'', Lng: r.gps?r.gps.lng:'', 'GPS Acc (m)': r.gps?r.gps.acc:'',
+    RecordedBy: r.recordedBy, Timestamp: r.timestamp, Photos: (r.photos||[]).length
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'CP Records');
+  XLSX.writeFile(wb, exportFilenameBase()+'.xlsx');
+  await markExported(records);
+  toast('⬇️ Export Excel แล้ว');
+  renderList();
+});
+async function markExported(records){
+  for (const r of records) { if (!r.exported) { r.exported = true; await updateRecord(r); } }
+}
+
+/* ---------- Settings ---------- */
+document.getElementById('btnSaveName').addEventListener('click', async () => {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) return toast('กรอกชื่อก่อน');
+  RECORDED_BY = name;
+  await setSetting('recordedBy', name);
+  document.getElementById('firstRunBanner').style.display = 'none';
+  toast('✅ บันทึกชื่อแล้ว: ' + name);
+});
+document.getElementById('btnClearSynced').addEventListener('click', async () => {
+  if (!confirm('ลบเฉพาะรายการที่ export แล้วทั้งหมด?')) return;
+  const records = await getAllRecords();
+  for (const r of records) { if (r.exported) await deleteRecord(r.id); }
+  toast('🧹 ลบรายการที่ export แล้วเรียบร้อย');
+  renderList();
+});
+document.getElementById('btnClearAll').addEventListener('click', async () => {
+  if (!confirm('ลบข้อมูลทั้งหมดในเครื่องนี้ถาวร ยืนยัน?')) return;
+  const records = await getAllRecords();
+  for (const r of records) await deleteRecord(r.id);
+  toast('🗑️ ลบข้อมูลทั้งหมดแล้ว');
+  renderList();
+});
+
+/* ---------- Init ---------- */
+async function init(){
+  updateNetStatus();
+  DEVICE_ID = await getSetting('deviceId', null);
+  if (!DEVICE_ID) { DEVICE_ID = uuid(); await setSetting('deviceId', DEVICE_ID); }
+  document.getElementById('s-device').value = DEVICE_ID;
+  RECORDED_BY = await getSetting('recordedBy', null);
+  if (RECORDED_BY) document.getElementById('s-name').value = RECORDED_BY;
+  else document.getElementById('firstRunBanner').style.display = 'flex';
+  updateReadout();
+}
+init();
+</script>
+</body>
+</html>
