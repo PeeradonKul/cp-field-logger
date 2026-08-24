@@ -243,11 +243,17 @@
   <!-- ============ VIEW: EXPORT ============ -->
   <section class="view" id="view-export">
     <div class="card">
-      <h3>ส่งออกไป OneDrive / คลาวด์</h3>
+      <h3>☁️ ซิงค์ขึ้นคลาวด์</h3>
       <p style="color:var(--muted); font-size:13px; line-height:1.6;">
-        ไฟล์ที่ export จะตั้งชื่อไม่ซ้ำกันทุกครั้ง (ตามอุปกรณ์ + เวลา) จึงวางรวมกับของเพื่อนร่วมทีมในโฟลเดอร์ OneDrive เดียวกันได้โดยไม่ทับกัน — ไปเปิดรวมข้อมูลทีหลังด้วย Report Studio บนคอม
+        ตัวเลข/GPS/เวลา ของทุกรายการ <b style="color:var(--good);">ขึ้นคลาวด์ให้อัตโนมัติทันทีที่กด "บันทึกรายการนี้"</b> ไม่ต้องกดอะไรเพิ่มเลย — ถ้าตอนนั้นไม่มีเน็ต ระบบจะรอคิวส่งให้เองทันทีที่กลับมามีสัญญาณ (แม้จะปิดแอปไปแล้วก็ยังส่งต่อให้ตอนเปิดแอปครั้งถัดไป)
       </p>
-      <button class="btn teal" id="btnExportJson">⬇️ Export ไฟล์ JSON (สำหรับรวมทีม)</button>
+      <p style="color:var(--muted); font-size:13px; line-height:1.6;">
+        เปิด Report Studio บนคอมได้เลย จะเห็นข้อมูลของทุกคนรวมกันแบบสดๆ ไม่ต้องลากไฟล์อะไรเอง
+      </p>
+      <hr/>
+      <p class="label" style="margin-bottom:8px;">⚠️ รูปภาพยังไม่ได้ขึ้นคลาวด์อัตโนมัติ (ไฟล์ใหญ่เกินไป) — export ไฟล์นี้เพื่อเก็บรูปสำรอง แล้วส่งให้ทีมทำรายงานทีหลัง</p>
+      <button class="btn primary" id="btnShareJson">📤 แชร์ไฟล์ (รวมรูป) ไป OneDrive</button>
+      <button class="btn teal" id="btnExportJson">⬇️ Export ไฟล์ JSON (รวมรูป)</button>
       <button class="btn ghost" id="btnExportXlsx">⬇️ Export Excel (.xlsx)</button>
       <button class="btn ghost" id="btnExportCsv">⬇️ Export CSV</button>
       <hr/>
@@ -295,8 +301,31 @@
   </button>
 </nav>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+/* ---------- Firebase (auto cloud sync — no button needed, queues automatically while offline) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyDRfavgL-eJmVqD2elY8AaTHppMWwdqgtw",
+  authDomain: "pttepsp.firebaseapp.com",
+  projectId: "pttepsp",
+  storageBucket: "pttepsp.firebasestorage.app",
+  messagingSenderId: "1057982078263",
+  appId: "1:1057982078263:web:68fbd5c628257f1e270eb2"
+};
+let dbCloud = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  dbCloud = firebase.firestore();
+  dbCloud.enablePersistence({ synchronizeTabs: true }).catch(()=>{});
+} catch (e) { console.warn('Firebase init failed, cloud sync disabled', e); }
+
+function syncToCloud(rec){
+  if (!dbCloud) return;
+  const { photos, ...withoutPhotos } = rec; // keep photos local only — stay well under Firestore's 1MB doc limit
+  dbCloud.collection('cp_records').doc(rec.id).set(withoutPhotos).catch(err => console.warn('cloud sync queued/failed', err));
+}
 /* ---------- Register service worker ---------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
@@ -554,13 +583,14 @@ function renderNearest(lat, lng){
   wrap.style.display = 'block';
 }
 
-// auto-fill Location when a known KP is chosen/typed, but never overwrite something the user already wrote
+// changing KP always clears stale Location first, then re-fills only if the new KP matches a known station
 document.getElementById('f-kp').addEventListener('input', () => {
   const asset = document.getElementById('f-asset').value;
   const kp = document.getElementById('f-kp').value.trim();
-  const match = kpLocMap[asset+'||'+kp];
   const locField = document.getElementById('f-location');
-  if (match && !locField.value.trim()) locField.value = match;
+  locField.value = '';
+  const match = kpLocMap[asset+'||'+kp];
+  if (match) locField.value = match;
 });
 
 /* ---------- Live readout ---------- */
@@ -658,6 +688,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
   };
   if (!rec.kp && !rec.location) { toast('⚠️ กรอก KP หรือตำแหน่งอย่างน้อย 1 ช่อง'); return; }
   await addRecord(rec);
+  syncToCloud(rec);
   toast('✅ บันทึกแล้ว (' + rec.kp + ')');
   clearForm();
   refreshKpList();
@@ -728,6 +759,27 @@ function exportFilenameBase(){
   const stamp = d.toISOString().replace(/[-:T]/g,'').slice(0,13);
   return `cp_${(RECORDED_BY||'user').replace(/\s+/g,'')}_${DEVICE_ID.slice(0,8)}_${stamp}`;
 }
+document.getElementById('btnShareJson').addEventListener('click', async () => {
+  const records = await getAllRecords();
+  if (!records.length) return toast('ไม่มีข้อมูลให้ส่ง');
+  const filename = exportFilenameBase()+'.json';
+  const blob = new Blob([JSON.stringify(records, null, 2)], {type:'application/json'});
+  const file = new File([blob], filename, {type:'application/json'});
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'CP Field Data', text: filename });
+      await markExported(records);
+      toast('✅ ส่งไฟล์แล้ว — เลือก OneDrive ในเมนูที่เด้งขึ้นเพื่อบันทึก');
+      renderList();
+    } catch (err) {
+      if (err.name !== 'AbortError') toast('แชร์ไม่สำเร็จ: ใช้ปุ่ม Export ด้านล่างแทน');
+    }
+  } else {
+    toast('อุปกรณ์นี้ยังไม่รองรับแชร์ไฟล์ตรง ใช้ปุ่ม “Export ไฟล์ JSON” ด้านล่างแทนนะครับ');
+  }
+});
+
 document.getElementById('btnExportJson').addEventListener('click', async () => {
   const records = await getAllRecords();
   if (!records.length) return toast('ไม่มีข้อมูลให้ export');
@@ -811,6 +863,7 @@ async function init(){
   else document.getElementById('firstRunBanner').style.display = 'flex';
   updateReadout();
   refreshKpList();
+  if (dbCloud) { (await getAllRecords()).forEach(syncToCloud); }
 }
 init();
 </script>

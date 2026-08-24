@@ -1,13 +1,15 @@
 // CP Field Logger — Service Worker
 // Caches the app shell + SheetJS so the app (including Excel export) works with zero signal.
-const CACHE_NAME = 'cp-field-logger-v3';
+const CACHE_NAME = 'cp-field-logger-v5';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js'
 ];
 
 self.addEventListener('install', (event) => {
