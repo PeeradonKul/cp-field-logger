@@ -78,7 +78,8 @@
     <div class="toolbar" style="margin-bottom:0;">
       <span class="badge" id="cloudStatus">☁️ กำลังเชื่อมต่อคลาวด์...</span>
       <button class="btn" id="btnRefreshCloud">🔄 รีเฟรชข้อมูลคลาวด์</button>
-      <span style="color:var(--muted); font-size:12.5px;">ข้อมูลตัวเลข/GPS จากมือถือทุกเครื่องจะโผล่ที่นี่อัตโนมัติ (ไม่รวมรูปภาพ — ลากไฟล์ JSON ด้านล่างเพิ่มถ้าต้องการรูป)</span>
+      <button class="btn" id="btnFetchPhotos">📸 ดึงรูปจากคลาวด์ (ใช้ก่อน export รูป)</button>
+      <span style="color:var(--muted); font-size:12.5px;">ตัวเลขและรูปจากมือถือทุกเครื่องขึ้นคลาวด์อัตโนมัติแล้ว — กดปุ่มรูปก่อน export .zip ทุกครั้งเพื่อดึงรูปล่าสุดมาแนบ</span>
     </div>
   </div>
 
@@ -184,6 +185,23 @@ document.getElementById('btnRefreshCloud').addEventListener('click', () => {
   listenCloud();
 });
 listenCloud();
+
+document.getElementById('btnFetchPhotos').addEventListener('click', async () => {
+  const targets = Array.from(merged.values()).filter(r => cloudIds.has(r.id) && r.hasPhotos && (!r.photos || !r.photos.length));
+  if (!targets.length) { alert('ไม่มีรูปใหม่ที่ต้องดึงเพิ่ม (ดึงมาครบแล้ว หรือยังไม่มีรายการที่มีรูปในคลาวด์)'); return; }
+  let done = 0;
+  setCloudStatus(`📸 กำลังดึงรูป... 0/${targets.length}`);
+  for (const r of targets) {
+    try {
+      const snap = await dbCloud.collection('cp_records').doc(r.id).collection('photos').orderBy('index').get();
+      merged.get(r.id).photos = snap.docs.map(d => d.data().data);
+    } catch (e) { console.warn('fetch photos failed for', r.id, e); }
+    done++;
+    setCloudStatus(`📸 กำลังดึงรูป... ${done}/${targets.length}`);
+  }
+  setCloudStatus(`☁️ เชื่อมต่อคลาวด์แล้ว — ${cloudIds.size} รายการจากทีม (ดึงรูปแล้ว ${done} รายการ)`);
+  render();
+});
 
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
