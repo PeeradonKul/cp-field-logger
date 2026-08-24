@@ -140,6 +140,16 @@
       ⚠️ กรุณาตั้งชื่อผู้บันทึกก่อน ไปที่แท็บ “ตั้งค่า” ด้านล่าง
     </div>
 
+    <div class="formSwitch" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+      <button class="btn small formtab active" data-form="test_station" style="flex:1 1 30%; margin:0;">📊 Test Station</button>
+      <button class="btn small formtab" data-form="transformer" style="flex:1 1 30%; margin:0;">⚡ Transformer</button>
+      <button class="btn small formtab" data-form="bondbox" style="flex:1 1 30%; margin:0;">🔗 Bond Box</button>
+      <button class="btn small formtab" data-form="decoupler" style="flex:1 1 30%; margin:0;">🔌 DC Decoupler</button>
+      <button class="btn small formtab" data-form="insjoint" style="flex:1 1 30%; margin:0;">📐 Ins. Joint</button>
+      <button class="btn small formtab" data-form="anode" style="flex:1 1 30%; margin:0;">⚓ Anode</button>
+    </div>
+
+    <div id="form-test_station" class="formPane">
     <div class="card">
       <span class="label">ประเภทโครงสร้าง (Structure/Asset)</span>
       <select id="f-asset">
@@ -161,10 +171,10 @@
           <datalist id="kpList"></datalist>
         </div>
         <div>
-          <span class="label">Test post type</span>
-          <select id="f-posttype">
-            <option>A</option><option>AA</option><option>AR</option><option>E</option><option>-</option>
-          </select>
+          <span class="label">Test post type (จากรายงานเดิม)</span>
+          <div class="gps-box" style="margin-bottom:12px;">
+            <span class="txt" id="f-posttype-display">–</span>
+          </div>
         </div>
       </div>
 
@@ -194,19 +204,322 @@
           <input type="number" step="0.001" id="f-ac" placeholder="0.04" />
         </div>
         <div>
-          <span class="label">Gas Leak (%LEL)</span>
-          <input type="number" step="0.1" id="f-gas" placeholder="0" />
+          <span class="label">สภาพดิน (Soil condition)</span>
+          <select id="f-soil">
+            <option value="D">Dry (D)</option>
+            <option value="W">Wet (W)</option>
+          </select>
         </div>
       </div>
 
-      <span class="label">สภาพดิน (Soil condition)</span>
-      <select id="f-soil">
-        <option value="D">Dry (D)</option>
-        <option value="W">Wet (W)</option>
+      <span class="label">หมายเหตุ (Remark)</span>
+      <textarea id="f-remark" placeholder="ข้อสังเกตเพิ่มเติม..."></textarea>
+    </div>
+    </div>
+
+    <div id="form-transformer" class="formPane" style="display:none;">
+    <div class="card">
+      <span class="label">อุปกรณ์ (Transformer/Rectifier) — เลือกจาก list หรือพิมพ์ชื่อใหม่ได้เลยถ้ามีอุปกรณ์เพิ่ม</span>
+      <input type="text" id="t-equip" placeholder="เช่น 114-93-ES-001-CP RECTIFIER 001" list="equipList" autocomplete="off" />
+      <datalist id="equipList"></datalist>
+
+      <div class="grid2">
+        <div>
+          <span class="label">KP</span>
+          <input type="text" id="t-kp" placeholder="0" />
+        </div>
+        <div>
+          <span class="label">Location</span>
+          <input type="text" id="t-location" placeholder="เช่น Well pad A" />
+        </div>
+      </div>
+      <span class="label">โครงสร้างที่ป้องกัน (Structure)</span>
+      <input type="text" id="t-structure" placeholder="เช่น 16” Sinphuhorm pipeline" />
+
+      <div class="grid2">
+        <div>
+          <span class="label">DC Voltage (V)</span>
+          <input type="number" step="0.001" id="t-dcv" placeholder="4.49" />
+        </div>
+        <div>
+          <span class="label">AC Voltage (V)</span>
+          <input type="number" step="0.001" id="t-acv" placeholder="232" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <span class="label">DC Current (A)</span>
+          <input type="number" step="0.001" id="t-dci" placeholder="1.966" />
+        </div>
+        <div>
+          <span class="label">AC Current (A)</span>
+          <input type="number" step="0.001" id="t-aci" placeholder="0.12" />
+        </div>
+      </div>
+
+      <span class="label" style="margin-top:2px;">คำนวณ DC Current จาก Shunt (ไม่บังคับ — กรอกแล้วเติม DC Current ให้อัตโนมัติ)</span>
+      <div class="grid2">
+        <div>
+          <span class="label">V shunt (mV)</span>
+          <input type="number" step="0.001" id="t-vshunt" placeholder="9.62" />
+        </div>
+        <div>
+          <span class="label">Shunt Ratio (A/mV)</span>
+          <input type="number" step="0.001" id="t-shuntratio" placeholder="0.1" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <span class="label">TAP</span>
+          <input type="text" id="t-tap" placeholder="C1:F6" />
+        </div>
+        <div>
+          <span class="label">อัตราพิกัด (A / V)</span>
+          <input type="text" id="t-rating" placeholder="5 / 50" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <span class="label">P/S On (V)</span>
+          <input type="number" step="0.001" id="t-pson" placeholder="-1.27" />
+        </div>
+        <div>
+          <span class="label">P/S Off (V)</span>
+          <input type="number" step="0.001" id="t-psoff" placeholder="-0.69" />
+        </div>
+      </div>
+
+      <span class="label">หมายเหตุ (Remark)</span>
+      <textarea id="t-remark" placeholder="ข้อสังเกตเพิ่มเติม..."></textarea>
+    </div>
+    </div>
+
+    <div id="form-bondbox" class="formPane" style="display:none;">
+    <div class="card">
+      <span class="label">จุดวัด (Location/KP) — เลือกจาก list หรือพิมพ์จุดใหม่ได้เลยถ้ามีเพิ่ม</span>
+      <input type="text" id="b-loc" placeholder="เช่น KP 0.000 (PTTEP SP ↔ PH3)" list="bondboxList" autocomplete="off" />
+      <datalist id="bondboxList"></datalist>
+
+      <div class="grid2">
+        <div>
+          <span class="label">โครงสร้าง A</span>
+          <input type="text" id="b-structA" placeholder="เช่น PTTEP SP 16&quot;" />
+        </div>
+        <div>
+          <span class="label">โครงสร้าง B (ของนอก)</span>
+          <input type="text" id="b-structB" placeholder="เช่น Production flow line PH3" />
+        </div>
+      </div>
+
+      <span class="label" style="margin-top:4px;">โครงสร้าง A</span>
+      <div class="grid2">
+        <div>
+          <span class="label">P/S On (V)</span>
+          <input type="number" step="0.001" id="b-aOn" placeholder="-1.38" />
+        </div>
+        <div>
+          <span class="label">P/S Off (V)</span>
+          <input type="number" step="0.001" id="b-aOff" placeholder="-0.71" />
+        </div>
+      </div>
+
+      <span class="label">โครงสร้าง B</span>
+      <div class="grid2">
+        <div>
+          <span class="label">P/S On (V)</span>
+          <input type="number" step="0.001" id="b-bOn" placeholder="-1.02" />
+        </div>
+        <div>
+          <span class="label">P/S Off (V)</span>
+          <input type="number" step="0.001" id="b-bOff" placeholder="-0.91" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <span class="label">Bond DC Current (A)</span>
+          <input type="number" step="0.001" id="b-current" placeholder="0.08" />
+        </div>
+        <div>
+          <span class="label">ทิศทางกระแส</span>
+          <select id="b-direction">
+            <option value="">–</option>
+            <option value="Out">Out</option>
+            <option value="In">In</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <span class="label">ประเภทการเชื่อม</span>
+          <select id="b-type">
+            <option value="R">มีตัวต้านทาน (R)</option>
+            <option value="No Bond">ไม่เชื่อม (No Bond)</option>
+          </select>
+        </div>
+        <div>
+          <span class="label">Bond Resistor (Ohm)</span>
+          <input type="number" step="0.001" id="b-resistor" placeholder="1" />
+        </div>
+      </div>
+
+      <span class="label">หมายเหตุ (Remark)</span>
+      <textarea id="b-remark" placeholder="ข้อสังเกตเพิ่มเติม..."></textarea>
+    </div>
+    </div>
+
+    <div id="form-decoupler" class="formPane" style="display:none;">
+    <div class="card">
+      <span class="label">Tag No. — เลือกจาก list หรือพิมพ์ใหม่ได้เลยถ้ามีอุปกรณ์เพิ่ม</span>
+      <input type="text" id="d-tag" placeholder="เช่น PCR 10314" list="decouplerList" autocomplete="off" />
+      <datalist id="decouplerList"></datalist>
+
+      <span class="label">Protected Equipment</span>
+      <input type="text" id="d-protected" placeholder="เช่น Isolating Joint" />
+
+      <span class="label">Location</span>
+      <input type="text" id="d-location" placeholder="เช่น Production flow line PH4 0+000" />
+
+      <div class="grid2">
+        <div>
+          <span class="label">DVac (V)</span>
+          <input type="number" step="0.001" id="d-dvac" placeholder="0.01" />
+        </div>
+        <div>
+          <span class="label">Iac (A)</span>
+          <input type="number" step="0.001" id="d-iac" placeholder="0" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <span class="label">DVdc (V)</span>
+          <input type="number" step="0.001" id="d-dvdc" placeholder="0.737" />
+        </div>
+        <div>
+          <span class="label">Idc (A)</span>
+          <input type="number" step="0.001" id="d-idc" placeholder="0" />
+        </div>
+      </div>
+
+      <span class="label">สถานะการทำงาน (Function)</span>
+      <select id="d-function">
+        <option value="Pass">Pass ✅</option>
+        <option value="Fail">Fail ❌</option>
       </select>
 
       <span class="label">หมายเหตุ (Remark)</span>
-      <textarea id="f-remark" placeholder="ข้อสังเกตเพิ่มเติม..."></textarea>
+      <textarea id="d-remark" placeholder="เช่น PCR เริ่มเสื่อมสภาพ..."></textarea>
+    </div>
+    </div>
+
+    <div id="form-insjoint" class="formPane" style="display:none;">
+    <div class="card">
+      <span class="label">Tag No. — เลือกจาก list หรือพิมพ์ใหม่ได้เลยถ้ามีอุปกรณ์เพิ่ม</span>
+      <input type="text" id="j-tag" placeholder="เช่น PHM-INJ-001" list="insjointList" autocomplete="off" />
+      <datalist id="insjointList"></datalist>
+
+      <div class="grid2">
+        <div>
+          <span class="label">Type</span>
+          <select id="j-type">
+            <option>Isolating Joint</option>
+            <option>Isolating Flange</option>
+          </select>
+        </div>
+        <div>
+          <span class="label">Insulation Checker</span>
+          <select id="j-checker">
+            <option value="Pass">Pass ✅</option>
+            <option value="Shorted">Shorted ❌</option>
+          </select>
+        </div>
+      </div>
+
+      <span class="label">Location</span>
+      <input type="text" id="j-location" placeholder="เช่น Sinphuhom pipeline PH5 KP 0+000" />
+
+      <div class="readout">
+        <div class="on"><div class="v" id="j-ro-vs">–</div><div class="k">VS (V)</div></div>
+        <div class="off"><div class="v" id="j-ro-vp">–</div><div class="k">VP (V)</div></div>
+        <div class="ir"><div class="v" id="j-ro-diff">–</div><div class="k">VS − VP</div></div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <span class="label">DC Volt Station Side (Vs)</span>
+          <input type="number" step="0.001" id="j-vs" placeholder="-0.49" />
+        </div>
+        <div>
+          <span class="label">DC Volt Pipe Side (Vp)</span>
+          <input type="number" step="0.001" id="j-vp" placeholder="-1.31" />
+        </div>
+      </div>
+
+      <span class="label">หมายเหตุ (Remark)</span>
+      <textarea id="j-remark" placeholder="ข้อสังเกตเพิ่มเติม..."></textarea>
+    </div>
+    </div>
+
+    <div id="form-anode" class="formPane" style="display:none;">
+    <div class="card">
+      <span class="label">Tag / Location — เลือกจาก list หรือพิมพ์ใหม่ได้เลยถ้ามีเพิ่ม</span>
+      <input type="text" id="a-tag" placeholder="เช่น PHM-GB-100" list="anodeList" autocomplete="off" />
+      <datalist id="anodeList"></datalist>
+
+      <div class="grid2">
+        <div>
+          <span class="label">Location</span>
+          <input type="text" id="a-location" placeholder="เช่น Well pad A" />
+        </div>
+        <div>
+          <span class="label">Type</span>
+          <select id="a-type">
+            <option>Impressed current groundbed</option>
+            <option>Sacrificial anode</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <span class="label">Rectifier Output (Vdc)</span>
+          <input type="number" step="0.001" id="a-output" placeholder="18.49" />
+        </div>
+        <div>
+          <span class="label">สถานะ (Function)</span>
+          <select id="a-function">
+            <option value="Pass">Pass ✅</option>
+            <option value="Fail">Fail ❌</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn small ghost" id="btnFetchVdc" style="margin:-6px 0 12px; width:100%;">📥 ดึง Vdc ล่าสุดจาก Rectifier ที่เชื่อมกัน</button>
+
+      <span class="label">คำนวณกระแสจาก Shunt (ไม่บังคับ — กรอกแล้วเติมกระแส Anode รวมให้อัตโนมัติ)</span>
+      <div class="grid2">
+        <div>
+          <span class="label">V shunt (mV)</span>
+          <input type="number" step="0.001" id="a-vshunt" placeholder="0.4" />
+        </div>
+        <div>
+          <span class="label">Shunt Ratio (A/mV)</span>
+          <input type="number" step="0.001" id="a-shuntratio" placeholder="0.05" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <span class="label">กระแส Anode รวม (A)</span>
+          <input type="number" step="0.0001" id="a-current" placeholder="0.4003" />
+        </div>
+        <div>
+          <span class="label">ความต้านทานวงจรรวม (Ohm) = Vdc / I</span>
+          <input type="number" step="0.01" id="a-resistance" placeholder="46.19" />
+        </div>
+      </div>
+
+      <span class="label">หมายเหตุ (Remark) — ใส่รายละเอียดราย Anode Cell ได้ที่นี่ถ้าต้องการ</span>
+      <textarea id="a-remark" placeholder="เช่น Anode #8 สายขาด..."></textarea>
+    </div>
     </div>
 
     <div class="card">
@@ -445,60 +758,71 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 /* ---------- Reference station database (from past inspection report, incl. real UTM coordinates) ---------- */
-/* Fields per station: [kp, location, northing, easting] — coordinates are UTM Zone 48N (Khon Kaen area) */
+/* Fields per station: [kp, location, northing, easting, postType] — coordinates are UTM Zone 48N (Khon Kaen area) */
 const REF_STATIONS = {
   '16" Sinphuhorm Pipeline': [
-    ['0','Wellpad A',1890038.325,255881.6783],['1','บนภูเขา',1889225.453,256120.5814],
-    ['3','ภูฮ่อม',1887353.769,256329.3459],['5.025','ติดถนนทางเข้าหลุม 7',1885668.433,257172.2762],
-    ['6','ติดถนนทางเข้าหลุม 7',1884652.672,257723.1393],['7','ไร่มัน',1884269.312,257684.9551],
-    ['9.575','ไร่อ้อย',1882679.595,259202.0891],['10.915','ไร่อ้อย',1881901.724,258335.5965],
-    ['13','ไร่มันสำประหลัง',1879987.496,257922.8001],['14.34','ไร่มันสำประหลัง',1878658.885,257768.8891],
-    ['15.355','ไร่อ้อย',1877721.376,257463.2396],['17.15','ไร่อ้อย',1876019.919,257319.1796],
-    ['18.64','สวนยาง',1874667.152,256703.1998],['19.7','ไร่มันสำประหลัง',1873713.154,256546.4686],
-    ['20.807','ไร่มันสำประหลัง',1872737.278,256208.3156],['21.194','SBV-1',1872460.192,255917.3466],
-    ['23','ระหว่างยูคากับไร่มัน',1871119.432,254906.9846],['24.6','ไร่มันถนนเข้าถึง',1870382.621,253537.6573],
-    ['24.99','ไร่มันถนนเข้าถึง',1870372.435,253148.5029],['26.945','ไร่มันถนนเข้าถึง',1868922.355,251871.8705],
-    ['29','เขียงนาถนนเข้าถึง',1867436.539,250656.8332],['31.5','ที่โล่งตรงข้ามสวนยูคา',1865191.683,249963.8778],
-    ['33.38','ติดถนนลาดยาง',1863555.88,250038.6261],['35.35','ป่ายูคาถนนเข้าถึง',1861678.753,250234.951],
-    ['36.92','ไร่มันติดถนนลูกลัง',1860265.033,250255.532],['36.98','ไร่มันถนนเข้าถึง',1860189.366,250256.418],
-    ['39.425','ไร่มันสำประหลัง',1857699.569,250301.624],['41.675','SBV-2',1853764.578,250377.843],
-    ['42.7','SBV-3',1854580.528,250348.348],['43.5','ทุ่งนาบ้านโนนจิก',1853827.056,250243.460],
-    ['44.74','ข้างถนนเขื่อนเลยทุ่งโปร่ง',1852897.059,249460.877],['46.97','กลางทุ่งนาบ้านทุ่งโปร่ง',1851206.265,250601.968],
-    ['49.43','โรงมันสำปะหลัง',1849287.582,252146.017],['51.25','',1849012.799,253241.747],
-    ['52.376','ข้างศูนย์เศรษฐกิจพอเพียง',1847602.127,254118.082],['54.7','SBV4',1847477.392,256296.846],
-    ['56.15','ป่ามัน',1846764.724,257464.170],['57.24','Current span',1845781.831,257413.832],
-    ['58.413','',1845706.691,258666.764],['59.002','หน้าโรงไฟฟ้า',1845329.858,258867.015],
-    ['59.53','ป่ามัน',1845283.352,259389.351],['59.6','ใกล้ M/R PTT',1845343.771,259430.935],
-    ['61.328','หน้าหมู่บ้านใหม่พัฒนา',1845675.153,260805.829],['61.993','ทุ่งนาหลังวัดคำใหญ่',1845611.174,261409.767],
-    ['62.49','กระท่อมหลัง EXXON',1845561.341,261905.380],['62.95','',1845503.583,262285.313],
-    ['63.175','ใน GPP',1845296.532,262570.500]
+    ['0','Wellpad A',1890038.325,255881.6783,'A'],['1','บนภูเขา',1889225.453,256120.5814,'A'],
+    ['3','ภูฮ่อม',1887353.769,256329.3459,'A'],['5.025','ติดถนนทางเข้าหลุม 7',1885668.433,257172.2762,'A'],
+    ['6','ติดถนนทางเข้าหลุม 7',1884652.672,257723.1393,'A'],['7','ไร่มัน',1884269.312,257684.9551,'A'],
+    ['9.575','ไร่อ้อย',1882679.595,259202.0891,'A'],['10.915','ไร่อ้อย',1881901.724,258335.5965,'A'],
+    ['13','ไร่มันสำประหลัง',1879987.496,257922.8001,'A'],['14.34','ไร่มันสำประหลัง',1878658.885,257768.8891,'A'],
+    ['15.355','ไร่อ้อย',1877721.376,257463.2396,'A'],['17.15','ไร่อ้อย',1876019.919,257319.1796,'A'],
+    ['18.64','สวนยาง',1874667.152,256703.1998,'A'],['19.7','ไร่มันสำประหลัง',1873713.154,256546.4686,'A'],
+    ['20.807','ไร่มันสำประหลัง',1872737.278,256208.3156,'A'],['21.194','SBV-1',1872460.192,255917.3466,'A'],
+    ['23','ระหว่างยูคากับไร่มัน',1871119.432,254906.9846,'AA'],['24.6','ไร่มันถนนเข้าถึง',1870382.621,253537.6573,'AA'],
+    ['24.99','ไร่มันถนนเข้าถึง',1870372.435,253148.5029,'AA'],['26.945','ไร่มันถนนเข้าถึง',1868922.355,251871.8705,'AA'],
+    ['29','เขียงนาถนนเข้าถึง',1867436.539,250656.8332,'AA'],['31.5','ที่โล่งตรงข้ามสวนยูคา',1865191.683,249963.8778,'AA'],
+    ['33.38','ติดถนนลาดยาง',1863555.88,250038.6261,'AA'],['35.35','ป่ายูคาถนนเข้าถึง',1861678.753,250234.951,'AA'],
+    ['36.92','ไร่มันติดถนนลูกลัง',1860265.033,250255.532,'A'],['36.98','ไร่มันถนนเข้าถึง',1860189.366,250256.418,'E'],
+    ['39.425','ไร่มันสำประหลัง',1857699.569,250301.624,'A'],['41.675','SBV-2',1853764.578,250377.843,'A'],
+    ['42.7','SBV-3',1854580.528,250348.348,'AA'],['43.5','ทุ่งนาบ้านโนนจิก',1853827.056,250243.460,'A'],
+    ['44.74','ข้างถนนเขื่อนเลยทุ่งโปร่ง',1852897.059,249460.877,'A'],['46.97','กลางทุ่งนาบ้านทุ่งโปร่ง',1851206.265,250601.968,'A'],
+    ['49.43','โรงมันสำปะหลัง',1849287.582,252146.017,'A'],['51.25','',1849012.799,253241.747,'A'],
+    ['52.376','ข้างศูนย์เศรษฐกิจพอเพียง',1847602.127,254118.082,'A'],['54.7','SBV4',1847477.392,256296.846,'A'],
+    ['56.15','ป่ามัน',1846764.724,257464.170,'A'],['57.24','Current span',1845781.831,257413.832,'E'],
+    ['58.413','',1845706.691,258666.764,'AR'],['59.002','หน้าโรงไฟฟ้า',1845329.858,258867.015,'AR'],
+    ['59.53','ป่ามัน',1845283.352,259389.351,'AR'],['59.6','ใกล้ M/R PTT',1845343.771,259430.935,'A'],
+    ['61.328','หน้าหมู่บ้านใหม่พัฒนา',1845675.153,260805.829,'A'],['61.993','ทุ่งนาหลังวัดคำใหญ่',1845611.174,261409.767,'A'],
+    ['62.49','กระท่อมหลัง EXXON',1845561.341,261905.380,'A'],['62.95','',1845503.583,262285.313,'A'],
+    ['63.175','ใน GPP',1845296.532,262570.500,'A']
   ],
   '10" Production Flow Line PH3–PH5': [
-    ['0','SPH3',1892587.967,256708.4405],['1.45','Road side',1892501.515,255587.7234],
-    ['2.707','Road side',1891644.991,255458.7208],['4.604','SPH5',1890193.305,255883.5019]
+    ['0','SPH3',1892587.967,256708.4405,'E'],['1.45','Road side',1892501.515,255587.7234,'A'],
+    ['2.707','Road side',1891644.991,255458.7208,'A'],['4.604','SPH5',1890193.305,255883.5019,'E']
   ],
   '10" Production Flow Line PH4–PH5': [
-    ['0','SPH4',1894602.752,254851.3367],['2','Road side',1892689.524,254512.8181],
-    ['4','Road side',1891672.813,255446.6235],['5.915','SPH5',1890042.058,255878.1763]
+    ['0','SPH4',1894602.752,254851.3367,'A'],['2','Road side',1892689.524,254512.8181,'A'],
+    ['4','Road side',1891672.813,255446.6235,'A'],['5.915','SPH5',1890042.058,255878.1763,'A']
   ],
   'Condensate Tank A': [
-    ['NE','Condensate A NE',1845228.83,262590.89],['SE','Condensate A SE',1845223.62,262589.94],
-    ['SW','Condensate A SW',1845225.26,262583.83],['NW','Condensate A NW',1845230.51,262584.74]
+    ['NE','Condensate A NE',1845228.83,262590.89,'A'],['SE','Condensate A SE',1845223.62,262589.94,'A'],
+    ['SW','Condensate A SW',1845225.26,262583.83,'A'],['NW','Condensate A NW',1845230.51,262584.74,'A']
   ],
   'Condensate Tank B': [
-    ['NE','Condensate B NE',1845194.76,262589.29],['SE','Condensate B SE',1845188.77,262588.27],
-    ['SW','Condensate B SW',1845187.84,262581.08],['NW','Condensate B NW',1845193.61,262580.91]
+    ['NE','Condensate B NE',1845194.76,262589.29,'A'],['SE','Condensate B SE',1845188.77,262588.27,'A'],
+    ['SW','Condensate B SW',1845187.84,262581.08,'A'],['NW','Condensate B NW',1845193.61,262580.91,'A']
   ],
   'Fire Water Tank': [
-    ['W','Fire water tank- W',1845078,262454],['N','Fire water tank- N',1845086,262465],
-    ['E','Fire water tank- E',1845077,262470],['S','Fire water tank- S',1845070,262462]
+    ['W','Fire water tank- W',1845078,262454,'A'],['N','Fire water tank- N',1845086,262465,'A'],
+    ['E','Fire water tank- E',1845077,262470,'A'],['S','Fire water tank- S',1845070,262462,'A']
   ],
   'GPP Buried Pipeline': [
-    ['0','Sale condensate',1845375,262499],['4','To PTT',1845172,262450],
-    ['3','North West Corner',1845296,262570],['2','West Side of Closed Drain Area',1845124,262556]
+    ['0','Sale condensate',1845375,262499,'A'],['4','To PTT',1845172,262450,'A'],
+    ['3','North West Corner',1845296,262570,'A'],['2','West Side of Closed Drain Area',1845124,262556,'A']
   ],
-  'Closed Drain Line': [] // no reliable coordinates in source data — skipped from GPS matching
+  'Closed Drain Line': [['1','JB01',null,null,'AA'],['2','JB02',null,null,'AA']]
 };
+
+/* ---------- Reference transformer/rectifier database (Table 2.3 / 3.3 in past report) ---------- */
+const REF_TRANSFORMERS = [
+  { tag:'114-93-ES-001-CP RECTIFIER 001', kp:'0', location:'Well pad A', structure:'16" Sinphuhorm pipeline and 10" production flow line', rating:'5 / 50' },
+  { tag:'114-93-ES-001-CP RECTIFIER 002', kp:'21.194', location:'BVS1', structure:'16" Sinphuhorm pipeline', rating:'5 / 50' },
+  { tag:'114-93-ES-001-CP RECTIFIER 003', kp:'54.75', location:'BVS4', structure:'16" Sinphuhorm pipeline', rating:'5 / 50' },
+  { tag:'115-93-ES-001', kp:'63.175', location:'Beside firewater tank', structure:'Firewater tank', rating:'12 / 50' },
+  { tag:'115-93-ES-002', kp:'63.175', location:'Beside control room', structure:'Condensate tank B', rating:'5 / 24' },
+  { tag:'115-93-ES-003', kp:'63.175', location:'Beside control room', structure:'Condensate tank A', rating:'5 / 24' },
+  { tag:'115-93-ES-004', kp:'63.175', location:'Beside control room', structure:'GPP buried pipeline', rating:'34 / 50' }
+];
 
 /* ---------- Lat/Lon (WGS84, from device GPS) -> UTM Zone 48N meters ---------- */
 function latLonToUTM(lat, lon) {
@@ -517,7 +841,8 @@ function latLonToUTM(lat, lon) {
   return { n: northing, e: easting };
 }
 
-let kpLocMap = {}; // "asset||kp" -> location
+let kpLocMap = {};  // "asset||kp" -> location
+let kpTypeMap = {}; // "asset||kp" -> test post type
 let geoIndex = []; // [{kp, loc, n, e}] for the currently selected asset (ref + learned history)
 
 async function refreshKpList(){
@@ -525,12 +850,14 @@ async function refreshKpList(){
   const dl = document.getElementById('kpList');
   const locDl = document.getElementById('locList');
   dl.innerHTML = ''; locDl.innerHTML = '';
-  kpLocMap = {}; geoIndex = [];
+  kpLocMap = {}; kpTypeMap = {}; geoIndex = [];
+  document.getElementById('f-posttype-display').textContent = '–';
 
   const seenLoc = new Set();
   const ref = REF_STATIONS[asset] || [];
-  ref.forEach(([kp, loc, n, e]) => {
+  ref.forEach(([kp, loc, n, e, postType]) => {
     kpLocMap[asset+'||'+kp] = loc;
+    if (postType) kpTypeMap[asset+'||'+kp] = postType;
     const opt = document.createElement('option');
     opt.value = kp; opt.label = loc;
     dl.appendChild(opt);
@@ -584,7 +911,7 @@ function renderNearest(lat, lng){
     btn.innerHTML = `<span><b>KP ${escapeHtml(s.kp)}</b> ${escapeHtml(s.loc||'')}</span><span class="dist">~${Math.round(s.dist)} m</span>`;
     btn.addEventListener('click', () => {
       document.getElementById('f-kp').value = s.kp;
-      document.getElementById('f-location').value = s.loc || document.getElementById('f-location').value;
+      applyKpMatch();
       toast('✅ เติมจุด KP ' + s.kp + ' ให้แล้ว');
     });
     list.appendChild(btn);
@@ -592,14 +919,297 @@ function renderNearest(lat, lng){
   wrap.style.display = 'block';
 }
 
-// changing KP always clears stale Location first, then re-fills only if the new KP matches a known station
-document.getElementById('f-kp').addEventListener('input', () => {
+// changing KP always clears stale Location/Post-type first, then re-fills only if the new KP matches a known station
+function applyKpMatch(){
   const asset = document.getElementById('f-asset').value;
   const kp = document.getElementById('f-kp').value.trim();
   const locField = document.getElementById('f-location');
+  const typeDisplay = document.getElementById('f-posttype-display');
   locField.value = '';
   const match = kpLocMap[asset+'||'+kp];
   if (match) locField.value = match;
+  const typeMatch = kpTypeMap[asset+'||'+kp];
+  typeDisplay.textContent = typeMatch || '–';
+}
+document.getElementById('f-kp').addEventListener('input', applyKpMatch);
+
+/* ---------- Form-type switcher (Test Station / Transformer, more to come) ---------- */
+let currentFormType = 'test_station';
+document.querySelectorAll('.formtab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.formtab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFormType = btn.dataset.form;
+    document.querySelectorAll('.formPane').forEach(p => p.style.display = 'none');
+    document.getElementById('form-' + currentFormType).style.display = 'block';
+  });
+});
+
+/* ---------- Transformer equipment autocomplete + auto-fill ---------- */
+let equipMap = {}; // tag -> {kp, location, structure, rating}
+
+async function refreshEquipList(){
+  const dl = document.getElementById('equipList');
+  dl.innerHTML = '';
+  equipMap = {};
+  const seenTag = new Set();
+  REF_TRANSFORMERS.forEach(t => {
+    equipMap[t.tag] = t;
+    seenTag.add(t.tag);
+    const opt = document.createElement('option');
+    opt.value = t.tag; opt.label = t.location;
+    dl.appendChild(opt);
+  });
+  try {
+    const records = await getAllRecords();
+    records.filter(r => r.formType === 'transformer' && r.equip && !seenTag.has(r.equip)).forEach(r => {
+      seenTag.add(r.equip);
+      const opt = document.createElement('option');
+      opt.value = r.equip; opt.label = r.location || '';
+      dl.appendChild(opt);
+    });
+  } catch(e) { /* db not ready yet */ }
+}
+
+document.getElementById('t-equip').addEventListener('input', () => {
+  const tag = document.getElementById('t-equip').value.trim();
+  const match = equipMap[tag];
+  document.getElementById('t-kp').value = match ? match.kp : '';
+  document.getElementById('t-location').value = match ? match.location : '';
+  document.getElementById('t-structure').value = match ? match.structure : '';
+  document.getElementById('t-rating').value = match ? match.rating : '';
+});
+
+/* ---------- Bond Box location autocomplete + auto-fill ---------- */
+const REF_BONDBOX = [
+  { loc:'KP 0.000 (PTTEP SP ↔ PH3)', structA:'PTTEP SP 16"', structB:'Production flow line PH3' },
+  { loc:'KP 0.000 (PTTEP SP ↔ PH4)', structA:'PTTEP SP 16"', structB:'Production flow line PH4' },
+  { loc:'KP 35.350 (PTTEP SP ↔ Water Pipe)', structA:'PTTEP SP', structB:'Water Pipe' },
+  { loc:'KP 41.675 (PTTEP SP ↔ Water Pipe)', structA:'PTTEP SP', structB:'Water Pipe' },
+  { loc:'KP 62.950 (PTTEP SP ↔ EXXON)', structA:'PTTEP SP', structB:'EXXON' }
+];
+let bondboxMap = {};
+
+async function refreshBondboxList(){
+  const dl = document.getElementById('bondboxList');
+  dl.innerHTML = '';
+  bondboxMap = {};
+  const seen = new Set();
+  REF_BONDBOX.forEach(b => {
+    bondboxMap[b.loc] = b;
+    seen.add(b.loc);
+    const opt = document.createElement('option');
+    opt.value = b.loc;
+    dl.appendChild(opt);
+  });
+  try {
+    const records = await getAllRecords();
+    records.filter(r => r.formType === 'bondbox' && r.loc && !seen.has(r.loc)).forEach(r => {
+      seen.add(r.loc);
+      const opt = document.createElement('option');
+      opt.value = r.loc;
+      dl.appendChild(opt);
+    });
+  } catch(e) { /* db not ready yet */ }
+}
+
+document.getElementById('b-loc').addEventListener('input', () => {
+  const loc = document.getElementById('b-loc').value.trim();
+  const match = bondboxMap[loc];
+  document.getElementById('b-structA').value = match ? match.structA : '';
+  document.getElementById('b-structB').value = match ? match.structB : '';
+});
+
+/* ---------- DC Decoupler tag autocomplete + auto-fill ---------- */
+const REF_DECOUPLER = [
+  { tag:'PCR 10314', protected:'Isolating Joint', location:'Production flow line PH4 0+000' },
+  { tag:'PCR 10312', protected:'Isolating Joint', location:'Production flow line PH4 5+915' },
+  { tag:'PCR 10613', protected:'Isolating Joint', location:'Production flow line PH3 0+000' },
+  { tag:'PCR 10628', protected:'Isolating Joint', location:'Production flow line PH3 KP 4+604' },
+  { tag:'PCR 10627', protected:'Isolating Joint', location:'Sinphuhorm pipeline PH5 KP 0+000' },
+  { tag:'PCR 10612', protected:'Isolating Joint', location:'Sinphuhorm pipeline GPP KP 63+175' },
+  { tag:'20-DC-28652-B03 (U/G)', protected:'Isolating Flange', location:'Near Contaminate KERB3' },
+  { tag:'20-DC-28650-B03 (U/G)', protected:'Isolating Flange', location:'Near Contaminate KERB4' },
+  { tag:'80-DC-28628-B03 (U/G)', protected:'Isolating Flange', location:'Near Contaminate KERB1' },
+  { tag:'80-DC-28620-B03 (U/G)', protected:'Isolating Flange', location:'Near Contaminate KERB1' },
+  { tag:'100-DC-28625-B03 (U/G)', protected:'Isolating Flange', location:'' }
+];
+let decouplerMap = {};
+
+async function refreshDecouplerList(){
+  const dl = document.getElementById('decouplerList');
+  dl.innerHTML = '';
+  decouplerMap = {};
+  const seen = new Set();
+  REF_DECOUPLER.forEach(d => {
+    decouplerMap[d.tag] = d;
+    seen.add(d.tag);
+    const opt = document.createElement('option');
+    opt.value = d.tag; opt.label = d.location;
+    dl.appendChild(opt);
+  });
+  try {
+    const records = await getAllRecords();
+    records.filter(r => r.formType === 'decoupler' && r.tag && !seen.has(r.tag)).forEach(r => {
+      seen.add(r.tag);
+      const opt = document.createElement('option');
+      opt.value = r.tag; opt.label = r.location || '';
+      dl.appendChild(opt);
+    });
+  } catch(e) { /* db not ready yet */ }
+}
+
+document.getElementById('d-tag').addEventListener('input', () => {
+  const tag = document.getElementById('d-tag').value.trim();
+  const match = decouplerMap[tag];
+  document.getElementById('d-protected').value = match ? match.protected : '';
+  document.getElementById('d-location').value = match ? match.location : '';
+});
+
+/* ---------- Insulating Joint tag autocomplete + auto-fill ---------- */
+const REF_INSJOINT = [
+  { tag:'PHM-INJ-001', type:'Isolating Joint', location:'Sinphuhom pipeline PH5 KP 0+000' },
+  { tag:'PHM-INJ-002', type:'Isolating Joint', location:'Sinphuhom pipeline GPP KP 63+175' },
+  { tag:'PHM-INJ-003', type:'Isolating Joint', location:'Production flow line PH3 0+000' },
+  { tag:'PHM-INJ-004', type:'Isolating Joint', location:'Production flow line PH3 KP 4+604' },
+  { tag:'PHM-INJ-005', type:'Isolating Joint', location:'Production flow line PH4 0+000' },
+  { tag:'PHM-INJ-006', type:'Isolating Joint', location:'Production flow line PH4 5+915' },
+  { tag:'20-DC-28652-B03 (U/G)', type:'Isolating Flange', location:'Near Contaminate KERB3' },
+  { tag:'20-DC-28650-B03 (U/G)', type:'Isolating Flange', location:'Near Contaminate KERB4' },
+  { tag:'80-DC-28628-B03 (U/G)', type:'Isolating Flange', location:'Near Contaminate KERB1' },
+  { tag:'80-DC-28620-B03 (U/G)', type:'Isolating Flange', location:'Near Contaminate KERB1' },
+  { tag:'100-DC-28625-B03 (U/G)', type:'Isolating Flange', location:'' },
+  { tag:'GPP to PTTNGV', type:'Isolating Flange', location:'GPP to PTTNGV' },
+  { tag:'Process Drain 4"', type:'Isolating Flange', location:'Process Drain tube to Close Drain header 4"' },
+  { tag:'Process Drain 3"', type:'Isolating Flange', location:'Process Drain tube to Close Drain header 3"' }
+];
+let insjointMap = {};
+
+async function refreshInsjointList(){
+  const dl = document.getElementById('insjointList');
+  dl.innerHTML = '';
+  insjointMap = {};
+  const seen = new Set();
+  REF_INSJOINT.forEach(j => {
+    insjointMap[j.tag] = j;
+    seen.add(j.tag);
+    const opt = document.createElement('option');
+    opt.value = j.tag; opt.label = j.location;
+    dl.appendChild(opt);
+  });
+  try {
+    const records = await getAllRecords();
+    records.filter(r => r.formType === 'insjoint' && r.tag && !seen.has(r.tag)).forEach(r => {
+      seen.add(r.tag);
+      const opt = document.createElement('option');
+      opt.value = r.tag; opt.label = r.location || '';
+      dl.appendChild(opt);
+    });
+  } catch(e) { /* db not ready yet */ }
+}
+
+document.getElementById('j-tag').addEventListener('input', () => {
+  const tag = document.getElementById('j-tag').value.trim();
+  const match = insjointMap[tag];
+  document.getElementById('j-type').value = match ? match.type : 'Isolating Joint';
+  document.getElementById('j-location').value = match ? match.location : '';
+});
+
+function updateInsjointReadout(){
+  const vs = parseFloat(document.getElementById('j-vs').value);
+  const vp = parseFloat(document.getElementById('j-vp').value);
+  document.getElementById('j-ro-vs').textContent = fmt(vs);
+  document.getElementById('j-ro-vp').textContent = fmt(vp);
+  document.getElementById('j-ro-diff').textContent = (!isNaN(vs) && !isNaN(vp)) ? fmt(vs-vp) : '–';
+}
+document.getElementById('j-vs').addEventListener('input', updateInsjointReadout);
+document.getElementById('j-vp').addEventListener('input', updateInsjointReadout);
+
+/* ---------- Anode groundbed tag autocomplete + auto-fill ---------- */
+const REF_ANODE = [
+  { tag:'PHM-GB-100', location:'Well pad A', type:'Impressed current groundbed', rectifierTag:'114-93-ES-001-CP RECTIFIER 001' },
+  { tag:'PHM-GB-200', location:'BVS1', type:'Impressed current groundbed', rectifierTag:'114-93-ES-001-CP RECTIFIER 002' },
+  { tag:'PHM-GB-300', location:'BVS4', type:'Impressed current groundbed', rectifierTag:'114-93-ES-001-CP RECTIFIER 003' },
+  { tag:'HESS-PB-003', location:'Firewater tank', type:'Impressed current groundbed', rectifierTag:'115-93-ES-001' },
+  { tag:'HESS-PB-004', location:'Condensate tank B', type:'Impressed current groundbed', rectifierTag:'115-93-ES-002' },
+  { tag:'HESS-PB-001', location:'Condensate tank A', type:'Impressed current groundbed', rectifierTag:'115-93-ES-003' },
+  { tag:'HESS-PB-002A', location:'GPP buried pipeline (Anode 1)', type:'Impressed current groundbed', rectifierTag:'115-93-ES-004' },
+  { tag:'HESS-PB-002B', location:'GPP buried pipeline (Anode 2)', type:'Impressed current groundbed', rectifierTag:'115-93-ES-004' },
+  { tag:'JB01', location:'Closed drain at well pad A', type:'Sacrificial anode', rectifierTag:null },
+  { tag:'JB02', location:'Closed drain at well pad A', type:'Sacrificial anode', rectifierTag:null }
+];
+let anodeMap = {};
+
+async function refreshAnodeList(){
+  const dl = document.getElementById('anodeList');
+  dl.innerHTML = '';
+  anodeMap = {};
+  const seen = new Set();
+  REF_ANODE.forEach(a => {
+    anodeMap[a.tag] = a;
+    seen.add(a.tag);
+    const opt = document.createElement('option');
+    opt.value = a.tag; opt.label = a.location;
+    dl.appendChild(opt);
+  });
+  try {
+    const records = await getAllRecords();
+    records.filter(r => r.formType === 'anode' && r.tag && !seen.has(r.tag)).forEach(r => {
+      seen.add(r.tag);
+      const opt = document.createElement('option');
+      opt.value = r.tag; opt.label = r.location || '';
+      dl.appendChild(opt);
+    });
+  } catch(e) { /* db not ready yet */ }
+}
+
+document.getElementById('a-tag').addEventListener('input', () => {
+  const tag = document.getElementById('a-tag').value.trim();
+  const match = anodeMap[tag];
+  document.getElementById('a-location').value = match ? match.location : '';
+  document.getElementById('a-type').value = match ? match.type : 'Impressed current groundbed';
+});
+
+/* ---------- Shunt-based current calculators ---------- */
+function updateTransformerShuntCalc(){
+  const vshunt = parseFloat(document.getElementById('t-vshunt').value);
+  const ratio = parseFloat(document.getElementById('t-shuntratio').value);
+  if (!isNaN(vshunt) && !isNaN(ratio)) {
+    document.getElementById('t-dci').value = +(vshunt * ratio).toFixed(4);
+  }
+}
+document.getElementById('t-vshunt').addEventListener('input', updateTransformerShuntCalc);
+document.getElementById('t-shuntratio').addEventListener('input', updateTransformerShuntCalc);
+
+function updateAnodeCalc(){
+  const vshunt = parseFloat(document.getElementById('a-vshunt').value);
+  const ratio = parseFloat(document.getElementById('a-shuntratio').value);
+  if (!isNaN(vshunt) && !isNaN(ratio)) {
+    document.getElementById('a-current').value = +(vshunt * ratio).toFixed(4);
+  }
+  const vdc = parseFloat(document.getElementById('a-output').value);
+  const current = parseFloat(document.getElementById('a-current').value);
+  if (!isNaN(vdc) && !isNaN(current) && current !== 0) {
+    document.getElementById('a-resistance').value = +(vdc / current).toFixed(2);
+  }
+}
+['a-vshunt','a-shuntratio','a-output','a-current'].forEach(id =>
+  document.getElementById(id).addEventListener('input', updateAnodeCalc)
+);
+
+/* ---------- Fetch latest Vdc from the linked Transformer/Rectifier ---------- */
+document.getElementById('btnFetchVdc').addEventListener('click', async () => {
+  const tag = document.getElementById('a-tag').value.trim();
+  const info = anodeMap[tag];
+  if (!info || !info.rectifierTag) { toast('⚠️ ไม่พบเรคติไฟเออร์ที่เชื่อมกับจุดนี้ (อาจเป็น Sacrificial anode ที่ไม่มี Vdc)'); return; }
+  const records = await getAllRecords();
+  const matches = records
+    .filter(r => r.formType === 'transformer' && r.equip === info.rectifierTag && r.dcVoltage != null)
+    .sort((a,b) => b.timestamp.localeCompare(a.timestamp));
+  if (!matches.length) { toast('⚠️ ยังไม่มีข้อมูล Transformer ของ ' + info.rectifierTag + ' ในเครื่องนี้ (ต้องจดจากเครื่องเดียวกัน)'); return; }
+  document.getElementById('a-output').value = matches[0].dcVoltage;
+  updateAnodeCalc();
+  toast('✅ ดึงค่า Vdc = ' + matches[0].dcVoltage + ' V (บันทึกเมื่อ ' + new Date(matches[0].timestamp).toLocaleString('th-TH') + ')');
 });
 
 /* ---------- Live readout ---------- */
@@ -681,37 +1291,106 @@ function resizeImage(file, maxDim, quality) {
 /* ---------- Save entry ---------- */
 document.getElementById('btnSave').addEventListener('click', async () => {
   if (!RECORDED_BY) { toast('⚠️ กรุณาตั้งชื่อผู้บันทึกในแท็บ "ตั้งค่า" ก่อน'); switchTab('view-settings'); return; }
-  const rec = {
-    id: uuid(),
-    deviceId: DEVICE_ID,
-    recordedBy: RECORDED_BY,
-    timestamp: new Date().toISOString(),
-    asset: val('f-asset'),
-    kp: val('f-kp'),
-    postType: val('f-posttype'),
-    location: val('f-location'),
-    onDC: numval('f-on'),
-    offDC: numval('f-off'),
-    ac: numval('f-ac'),
-    gasLeak: numval('f-gas'),
-    soil: val('f-soil'),
-    remark: val('f-remark'),
-    gps: currentGps,
-    photos: currentPhotos,
-    exported: false
-  };
-  if (!rec.kp && !rec.location) { toast('⚠️ กรอก KP หรือตำแหน่งอย่างน้อย 1 ช่อง'); return; }
+
+  let rec;
+  if (currentFormType === 'transformer') {
+    rec = {
+      id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
+      formType: 'transformer',
+      equip: val('t-equip'), kp: val('t-kp'), location: val('t-location'), structure: val('t-structure'),
+      dcVoltage: numval('t-dcv'), acVoltage: numval('t-acv'), dcCurrent: numval('t-dci'), acCurrent: numval('t-aci'),
+      vShunt: numval('t-vshunt'), shuntRatio: numval('t-shuntratio'),
+      tap: val('t-tap'), rating: val('t-rating'),
+      psOn: numval('t-pson'), psOff: numval('t-psoff'),
+      remark: val('t-remark'),
+      gps: currentGps, photos: currentPhotos, exported: false
+    };
+    if (!rec.equip) { toast('⚠️ กรอกชื่ออุปกรณ์ (Transformer/Rectifier) ก่อน'); return; }
+  } else if (currentFormType === 'bondbox') {
+    rec = {
+      id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
+      formType: 'bondbox',
+      loc: val('b-loc'), structA: val('b-structA'), structB: val('b-structB'),
+      aOn: numval('b-aOn'), aOff: numval('b-aOff'), bOn: numval('b-bOn'), bOff: numval('b-bOff'),
+      bondCurrent: numval('b-current'), direction: val('b-direction'), bondingType: val('b-type'),
+      resistor: numval('b-resistor'),
+      remark: val('b-remark'),
+      gps: currentGps, photos: currentPhotos, exported: false
+    };
+    if (!rec.loc) { toast('⚠️ กรอกจุดวัด (Location/KP) ก่อน'); return; }
+  } else if (currentFormType === 'decoupler') {
+    rec = {
+      id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
+      formType: 'decoupler',
+      tag: val('d-tag'), protected: val('d-protected'), location: val('d-location'),
+      dvac: numval('d-dvac'), iac: numval('d-iac'), dvdc: numval('d-dvdc'), idc: numval('d-idc'),
+      func: val('d-function'),
+      remark: val('d-remark'),
+      gps: currentGps, photos: currentPhotos, exported: false
+    };
+    if (!rec.tag) { toast('⚠️ กรอก Tag No. ก่อน'); return; }
+  } else if (currentFormType === 'insjoint') {
+    rec = {
+      id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
+      formType: 'insjoint',
+      tag: val('j-tag'), type: val('j-type'), location: val('j-location'),
+      vs: numval('j-vs'), vp: numval('j-vp'), checker: val('j-checker'),
+      remark: val('j-remark'),
+      gps: currentGps, photos: currentPhotos, exported: false
+    };
+    if (!rec.tag) { toast('⚠️ กรอก Tag No. ก่อน'); return; }
+  } else if (currentFormType === 'anode') {
+    rec = {
+      id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
+      formType: 'anode',
+      tag: val('a-tag'), location: val('a-location'), type: val('a-type'),
+      output: numval('a-output'), func: val('a-function'),
+      current: numval('a-current'), resistance: numval('a-resistance'),
+      vShunt: numval('a-vshunt'), shuntRatio: numval('a-shuntratio'),
+      remark: val('a-remark'),
+      gps: currentGps, photos: currentPhotos, exported: false
+    };
+    if (!rec.tag) { toast('⚠️ กรอก Tag / Location ก่อน'); return; }
+  } else {
+    rec = {
+      id: uuid(), deviceId: DEVICE_ID, recordedBy: RECORDED_BY, timestamp: new Date().toISOString(),
+      formType: 'test_station',
+      asset: val('f-asset'), kp: val('f-kp'),
+      postType: document.getElementById('f-posttype-display').textContent === '–' ? '' : document.getElementById('f-posttype-display').textContent,
+      location: val('f-location'),
+      onDC: numval('f-on'), offDC: numval('f-off'), ac: numval('f-ac'),
+      soil: val('f-soil'), remark: val('f-remark'),
+      gps: currentGps, photos: currentPhotos, exported: false
+    };
+    if (!rec.kp && !rec.location) { toast('⚠️ กรอก KP หรือตำแหน่งอย่างน้อย 1 ช่อง'); return; }
+  }
+
   await addRecord(rec);
   syncToCloud(rec);
-  toast('✅ บันทึกแล้ว (' + rec.kp + ')');
+  toast('✅ บันทึกแล้ว (' + (rec.kp || rec.equip || rec.loc || rec.tag) + ')');
   clearForm();
   refreshKpList();
+  refreshEquipList();
+  refreshBondboxList();
+  refreshDecouplerList();
+  refreshInsjointList();
+  refreshAnodeList();
 });
 
 function val(id){ return document.getElementById(id).value.trim(); }
 function numval(id){ const v = document.getElementById(id).value; return v===''? null : parseFloat(v); }
 function clearForm(){
-  ['f-kp','f-location','f-on','f-off','f-ac','f-gas','f-remark'].forEach(id => document.getElementById(id).value='');
+  ['f-kp','f-location','f-on','f-off','f-ac','f-remark',
+   't-equip','t-kp','t-location','t-structure','t-dcv','t-acv','t-dci','t-aci','t-vshunt','t-shuntratio','t-tap','t-rating','t-pson','t-psoff','t-remark',
+   'b-loc','b-structA','b-structB','b-aOn','b-aOff','b-bOn','b-bOff','b-current','b-resistor','b-remark',
+   'd-tag','d-protected','d-location','d-dvac','d-iac','d-dvdc','d-idc','d-remark',
+   'j-tag','j-location','j-vs','j-vp','j-remark',
+   'a-tag','a-location','a-output','a-current','a-resistance','a-vshunt','a-shuntratio','a-remark'
+  ].forEach(id => document.getElementById(id).value='');
+  document.getElementById('j-ro-vs').textContent = '–';
+  document.getElementById('j-ro-vp').textContent = '–';
+  document.getElementById('j-ro-diff').textContent = '–';
+  document.getElementById('f-posttype-display').textContent = '–';
   currentGps = null; currentPhotos = [];
   document.getElementById('gpsTxt').textContent = 'ยังไม่ได้จับพิกัด';
   document.getElementById('gpsTxt').classList.remove('got');
@@ -737,14 +1416,32 @@ async function renderList(){
     const div = document.createElement('div');
     div.className = 'rec';
     const thumb = r.photos && r.photos[0] ? `<img class="thumb" src="${r.photos[0]}"/>` : `<div class="thumb" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;">no photo</div>`;
+    const isTransformer = r.formType === 'transformer';
+    const isBondbox = r.formType === 'bondbox';
+    const isDecoupler = r.formType === 'decoupler';
+    const isInsjoint = r.formType === 'insjoint';
+    const isAnode = r.formType === 'anode';
+    const icon = isTransformer ? '⚡ ' : isBondbox ? '🔗 ' : isDecoupler ? '🔌 ' : isInsjoint ? '📐 ' : isAnode ? '⚓ ' : '📊 ';
+    const title = isTransformer ? (r.equip || '-') : isBondbox ? (r.loc || '-') : (isDecoupler || isInsjoint || isAnode) ? (r.tag || '-') : (r.kp || '-') + ' · ' + escapeHtml(r.asset || '');
+    const sub1 = isTransformer
+      ? `DC ${fmt(r.dcVoltage)}V/${fmt(r.dcCurrent)}A · ${new Date(r.timestamp).toLocaleString('th-TH')}`
+      : isBondbox
+      ? `A: ${fmt(r.aOn)}/${fmt(r.aOff)} · B: ${fmt(r.bOn)}/${fmt(r.bOff)} · ${new Date(r.timestamp).toLocaleString('th-TH')}`
+      : isDecoupler
+      ? `${r.func || '-'} · DVdc ${fmt(r.dvdc)}V · ${new Date(r.timestamp).toLocaleString('th-TH')}`
+      : isInsjoint
+      ? `${r.checker || '-'} · Vs-Vp ${(r.vs!=null && r.vp!=null) ? fmt(r.vs-r.vp) : '–'} · ${new Date(r.timestamp).toLocaleString('th-TH')}`
+      : isAnode
+      ? `${r.func || '-'} · ${fmt(r.current)}A / ${fmt(r.resistance)}Ω · ${new Date(r.timestamp).toLocaleString('th-TH')}`
+      : `ON ${fmt(r.onDC)} / OFF ${fmt(r.offDC)} · ${new Date(r.timestamp).toLocaleString('th-TH')}`;
     div.innerHTML = `
       ${thumb}
       <div class="meta">
         <div class="top-row">
-          <div class="title">${escapeHtml(r.kp || '-')} · ${escapeHtml(r.asset)}</div>
+          <div class="title">${icon}${escapeHtml(title)}</div>
           <span class="chip ${r.exported?'ok':'pending'}">${r.exported?'ส่งออกแล้ว':'รอส่งออก'}</span>
         </div>
-        <div class="sub">ON ${fmt(r.onDC)} / OFF ${fmt(r.offDC)} · ${new Date(r.timestamp).toLocaleString('th-TH')}</div>
+        <div class="sub">${sub1}</div>
         <div class="sub">${escapeHtml(r.recordedBy || '')}</div>
       </div>
       <button class="del" data-id="${r.id}">ลบ</button>
@@ -877,6 +1574,11 @@ async function init(){
   else document.getElementById('firstRunBanner').style.display = 'flex';
   updateReadout();
   refreshKpList();
+  refreshEquipList();
+  refreshBondboxList();
+  refreshDecouplerList();
+  refreshInsjointList();
+  refreshAnodeList();
   if (dbCloud) { (await getAllRecords()).forEach(syncToCloud); }
 }
 init();
