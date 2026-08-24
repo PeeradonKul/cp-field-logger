@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CP Report Studio — รวมข้อมูลทีม</title>
+<style>
+  :root{
+    --bg:#0F1417; --panel:#161E22; --panel2:#1B2529; --border:#2A353A;
+    --text:#F2F5F5; --muted:#8FA0A5; --on:#2DD4BF; --off:#FF6A13;
+    --good:#22C55E; --warn:#F59E0B; --bad:#EF4444;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);}
+  header{padding:24px 28px 12px; max-width:1180px; margin:0 auto;}
+  header .brand{display:flex; align-items:center; gap:12px;}
+  .ring{width:34px;height:34px;border-radius:50%;border:3px solid var(--off);position:relative;flex:none;}
+  .ring::after{content:"";position:absolute;left:50%;top:15%;bottom:15%;width:5px;transform:translateX(-50%);background:var(--on);border-radius:2px;}
+  h1{font-size:19px; margin:0;}
+  header p{color:var(--muted); font-size:13px; margin:4px 0 0;}
+  main{max-width:1180px; margin:0 auto; padding:0 28px 60px;}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:18px;}
+  .drop{
+    border:2px dashed var(--border); border-radius:14px; padding:40px 20px; text-align:center; color:var(--muted);
+    cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .drop.drag{border-color:var(--on); background:rgba(45,212,191,.06); color:var(--on);}
+  .drop b{color:var(--text); display:block; font-size:15px; margin-bottom:4px;}
+  input[type=file]{display:none;}
+  .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px;}
+  .stat{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center;}
+  .stat .num{font-family:var(--mono); font-size:26px; color:var(--on);}
+  .stat .lbl{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  select, button.btn{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:10px;
+    padding:10px 14px; font-size:13.5px; font-family:var(--sans); cursor:pointer;
+  }
+  button.btn.primary{background:var(--off); border-color:var(--off); color:#1a0e00; font-weight:600;}
+  button.btn.teal{background:var(--on); border-color:var(--on); color:#062421; font-weight:600;}
+  button.btn:hover{filter:brightness(1.1);}
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  thead th{
+    text-align:left; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px;
+    border-bottom:1px solid var(--border); padding:8px 10px; position:sticky; top:0; background:var(--panel);
+  }
+  tbody td{padding:8px 10px; border-bottom:1px solid var(--border); font-family:var(--mono); white-space:nowrap;}
+  tbody tr:hover{background:var(--panel2);}
+  .tablewrap{max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:12px;}
+  .badge{font-size:10.5px; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); font-family:var(--sans);}
+  .badge.dup{color:var(--warn); border-color:var(--warn);}
+  .empty{text-align:center; color:var(--muted); padding:20px; font-size:13px;}
+  canvas{max-width:100%;}
+  .chart-wrap{background:#0B1012; border:1px solid var(--border); border-radius:12px; padding:16px;}
+  h3{font-size:14px; margin:0 0 12px;}
+  .legend-note{font-size:11.5px; color:var(--muted); margin-top:10px;}
+  .thumb-strip{display:flex; gap:6px; overflow-x:auto; padding:6px 0;}
+  .thumb-strip img{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="ring"></div>
+    <div>
+      <h1>CP Report Studio</h1>
+      <p>รวมไฟล์ JSON จาก CP Field Logger ของทุกคน → ตาราง / กราฟ / Excel / รูปภาพ</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div class="card" id="cloudCard">
+    <div class="toolbar" style="margin-bottom:0;">
+      <span class="badge" id="cloudStatus">☁️ กำลังเชื่อมต่อคลาวด์...</span>
+      <button class="btn" id="btnRefreshCloud">🔄 รีเฟรชข้อมูลคลาวด์</button>
+      <span style="color:var(--muted); font-size:12.5px;">ข้อมูลตัวเลข/GPS จากมือถือทุกเครื่องจะโผล่ที่นี่อัตโนมัติ (ไม่รวมรูปภาพ — ลากไฟล์ JSON ด้านล่างเพิ่มถ้าต้องการรูป)</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="drop" id="dropZone">
+      <b>📂 ลากไฟล์ .json มาวางที่นี่</b>
+      เลือกได้หลายไฟล์พร้อมกัน (ไฟล์จากมือถือทุกคนใน OneDrive) หรือแตะเพื่อเลือกไฟล์
+      <input type="file" id="fileInput" accept=".json" multiple />
+    </div>
+  </div>
+
+  <div id="resultsArea" style="display:none;">
+
+    <div class="stat-grid">
+      <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">รายการทั้งหมด (ไม่ซ้ำ)</div></div>
+      <div class="stat"><div class="num" id="statDup">0</div><div class="lbl">รายการซ้ำที่กรองออก</div></div>
+      <div class="stat"><div class="num" id="statPeople">0</div><div class="lbl">ผู้บันทึก</div></div>
+      <div class="stat"><div class="num" id="statAssets">0</div><div class="lbl">Asset ที่มีข้อมูล</div></div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <select id="assetFilter"></select>
+        <button class="btn teal" id="btnXlsx">⬇️ Export Excel รวม (.xlsx)</button>
+        <button class="btn" id="btnJson">⬇️ Export JSON รวม (ไว้สำรอง)</button>
+        <button class="btn" id="btnZip">⬇️ Export รูปภาพทั้งหมด (.zip)</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>KP</th><th>Location</th><th>On (V)</th><th>Off (V)</th><th>IR Drop</th><th>AC</th>
+              <th>Gas Leak</th><th>Soil</th><th>ผู้บันทึก</th><th>เวลา</th><th>รูป</th><th>ที่มา</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 id="chartTitle">On/Off Potential Profile</h3>
+      <div class="chart-wrap"><canvas id="profileChart" height="90"></canvas></div>
+      <div class="legend-note">แสดงเฉพาะรายการที่ KP เป็นตัวเลข เรียงจากน้อยไปมาก (แบบเดียวกับกราฟ Figure 3.2 ในรายงาน)</div>
+    </div>
+
+  </div>
+
+  <div class="empty" id="emptyMsg">ยังไม่มีข้อมูล — เลือกไฟล์ JSON เพื่อเริ่มรวมข้อมูล</div>
+
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+let merged = new Map(); // id -> record
+let dupCount = 0;
+let chartInstance = null;
+const cloudIds = new Set(); // track which ids came from cloud (no photos) vs local files (may have photos)
+
+/* ---------- Firebase: live team data, zero clicks needed ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyDRfavgL-eJmVqD2elY8AaTHppMWwdqgtw",
+  authDomain: "pttepsp.firebaseapp.com",
+  projectId: "pttepsp",
+  storageBucket: "pttepsp.firebasestorage.app",
+  messagingSenderId: "1057982078263",
+  appId: "1:1057982078263:web:68fbd5c628257f1e270eb2"
+};
+let dbCloud = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  dbCloud = firebase.firestore();
+} catch (e) { console.warn('Firebase init failed', e); }
+
+function setCloudStatus(text){ document.getElementById('cloudStatus').textContent = text; }
+
+function listenCloud(){
+  if (!dbCloud) { setCloudStatus('☁️ เชื่อมต่อคลาวด์ไม่สำเร็จ'); return; }
+  setCloudStatus('☁️ กำลังโหลด...');
+  dbCloud.collection('cp_records').onSnapshot(snap => {
+    snap.docChanges().forEach(change => {
+      const data = change.doc.data();
+      const id = change.doc.id;
+      if (change.type === 'removed') { merged.delete(id); cloudIds.delete(id); return; }
+      // don't clobber a local copy that already has photos with a cloud copy that never has them
+      const existing = merged.get(id);
+      merged.set(id, { ...data, id, photos: (existing && existing.photos) || [] });
+      cloudIds.add(id);
+    });
+    setCloudStatus(`☁️ เชื่อมต่อคลาวด์แล้ว — ${cloudIds.size} รายการจากทีม (อัปเดตสด)`);
+    render();
+  }, err => {
+    console.warn(err);
+    setCloudStatus('☁️ เชื่อมต่อคลาวด์ไม่สำเร็จ — ใช้ลากไฟล์ JSON แทนได้');
+  });
+}
+document.getElementById('btnRefreshCloud').addEventListener('click', () => {
+  setCloudStatus('☁️ กำลังรีเฟรช...');
+  listenCloud();
+});
+listenCloud();
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('click', () => fileInput.click());
+['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('drag'); }));
+dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+async function handleFiles(fileList){
+  const files = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.json'));
+  if (!files.length) { alert('กรุณาเลือกไฟล์ .json ที่ export มาจากแอปบันทึกหน้างาน'); return; }
+  for (const file of files) {
+    try {
+      const text = await file.text();
+      const arr = JSON.parse(text);
+      if (!Array.isArray(arr)) continue;
+      arr.forEach(rec => {
+        if (!rec || !rec.id) return;
+        if (merged.has(rec.id)) {
+          const existing = merged.get(rec.id);
+          if ((!existing.photos || !existing.photos.length) && rec.photos && rec.photos.length) {
+            existing.photos = rec.photos; // enrich a cloud-only record with photos from the local export
+          }
+          dupCount++;
+          return;
+        }
+        merged.set(rec.id, rec);
+      });
+    } catch (e) {
+      console.warn('อ่านไฟล์ไม่สำเร็จ:', file.name, e);
+    }
+  }
+  render();
+}
+
+function render(){
+  const records = Array.from(merged.values()).sort((a,b) => (a.timestamp||'').localeCompare(b.timestamp||''));
+  document.getElementById('emptyMsg').style.display = records.length ? 'none' : 'block';
+  document.getElementById('resultsArea').style.display = records.length ? 'block' : 'none';
+  if (!records.length) return;
+
+  const people = new Set(records.map(r=>r.recordedBy).filter(Boolean));
+  const assets = new Set(records.map(r=>r.asset).filter(Boolean));
+  document.getElementById('statTotal').textContent = records.length;
+  document.getElementById('statDup').textContent = dupCount;
+  document.getElementById('statPeople').textContent = people.size;
+  document.getElementById('statAssets').textContent = assets.size;
+
+  const filterSel = document.getElementById('assetFilter');
+  const prevVal = filterSel.value;
+  filterSel.innerHTML = '<option value="__all__">ทุก Asset</option>' +
+    Array.from(assets).sort().map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
+  if (prevVal) filterSel.value = prevVal;
+  filterSel.onchange = () => renderTableAndChart(records);
+
+  renderTableAndChart(records);
+}
+
+function currentFiltered(records){
+  const f = document.getElementById('assetFilter').value;
+  return (!f || f === '__all__') ? records : records.filter(r => r.asset === f);
+}
+
+function renderTableAndChart(records){
+  const filtered = currentFiltered(records);
+
+  // table
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = filtered.map(r => {
+    const ir = (r.onDC!=null && r.offDC!=null) ? (r.onDC - r.offDC).toFixed(3) : '';
+    return `<tr>
+      <td>${escapeHtml(r.kp||'-')}</td>
+      <td style="font-family:var(--sans); white-space:normal;">${escapeHtml(r.location||'')}</td>
+      <td>${fmt(r.onDC)}</td><td>${fmt(r.offDC)}</td><td>${ir}</td>
+      <td>${fmt(r.ac)}</td><td>${fmt(r.gasLeak)}</td><td>${escapeHtml(r.soil||'')}</td>
+      <td style="font-family:var(--sans);">${escapeHtml(r.recordedBy||'')}</td>
+      <td>${r.timestamp ? new Date(r.timestamp).toLocaleString('th-TH') : ''}</td>
+      <td>${(r.photos||[]).length}</td>
+      <td><span class="badge">${cloudIds.has(r.id) ? '☁️ คลาวด์' : '📁 ไฟล์'}</span></td>
+    </tr>`;
+  }).join('');
+
+  // chart — only numeric KPs, sorted ascending
+  const chartData = filtered
+    .map(r => ({ kp: parseFloat(r.kp), on: r.onDC, off: r.offDC }))
+    .filter(d => !isNaN(d.kp))
+    .sort((a,b) => a.kp - b.kp);
+
+  const ctx = document.getElementById('profileChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  document.getElementById('chartTitle').textContent =
+    'On/Off Potential Profile — ' + (document.getElementById('assetFilter').value === '__all__' ? 'ทุก Asset' : document.getElementById('assetFilter').value);
+
+  if (!chartData.length) return;
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartData.map(d => d.kp),
+      datasets: [
+        { label: 'On Potential (V)', data: chartData.map(d=>d.on), borderColor:'#2DD4BF', backgroundColor:'transparent', tension:.15, pointRadius:3 },
+        { label: 'Off Potential (V)', data: chartData.map(d=>d.off), borderColor:'#FF6A13', backgroundColor:'transparent', tension:.15, pointRadius:3 },
+      ]
+    },
+    options: {
+      responsive:true,
+      scales:{
+        x:{ title:{display:true, text:'KP', color:'#8FA0A5'}, ticks:{color:'#8FA0A5'}, grid:{color:'#2A353A'} },
+        y:{ title:{display:true, text:'Potential (V)', color:'#8FA0A5'}, ticks:{color:'#8FA0A5'}, grid:{color:'#2A353A'}, reverse:false }
+      },
+      plugins:{ legend:{ labels:{ color:'#F2F5F5' } } }
+    }
+  });
+}
+
+function fmt(n){ return (n===null||n===undefined||isNaN(n)) ? '' : Number(n).toFixed(3); }
+function escapeHtml(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- Exports ---------- */
+document.getElementById('btnXlsx').addEventListener('click', () => {
+  const records = Array.from(merged.values());
+  const rows = records.map(r => ({
+    KP: r.kp, Asset: r.asset, Location: r.location, PostType: r.postType,
+    'On DC (V)': r.onDC, 'Off DC (V)': r.offDC,
+    'IR Drop (V)': (r.onDC!=null && r.offDC!=null) ? +(r.onDC-r.offDC).toFixed(3) : '',
+    'AC (V)': r.ac, 'Gas Leak (%LEL)': r.gasLeak, Soil: r.soil, Remark: r.remark,
+    Lat: r.gps?r.gps.lat:'', Lng: r.gps?r.gps.lng:'', 'GPS Acc (m)': r.gps?r.gps.acc:'',
+    RecordedBy: r.recordedBy, Timestamp: r.timestamp, Photos: (r.photos||[]).length, RecordID: r.id
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'CP Records (Merged)');
+  XLSX.writeFile(wb, 'CP_Merged_' + new Date().toISOString().slice(0,10) + '.xlsx');
+});
+
+document.getElementById('btnJson').addEventListener('click', () => {
+  const records = Array.from(merged.values());
+  const blob = new Blob([JSON.stringify(records, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'CP_Merged_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+});
+
+document.getElementById('btnZip').addEventListener('click', async () => {
+  const records = Array.from(merged.values());
+  const withPhotos = records.filter(r => r.photos && r.photos.length);
+  if (!withPhotos.length) return alert('ไม่มีรูปภาพในข้อมูลที่รวมไว้');
+  const zip = new JSZip();
+  withPhotos.forEach(r => {
+    const safeAsset = (r.asset||'asset').replace(/[^\w-]+/g,'_');
+    const safeKp = (r.kp||'0').replace(/[^\w.-]+/g,'_');
+    r.photos.forEach((dataUrl, i) => {
+      const base64 = dataUrl.split(',')[1];
+      zip.file(`${safeAsset}/KP_${safeKp}_${i+1}.jpg`, base64, {base64:true});
+    });
+  });
+  const blob = await zip.generateAsync({type:'blob'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'CP_Photos_' + new Date().toISOString().slice(0,10) + '.zip';
+  a.click();
+});
+</script>
+</body>
+</html>
