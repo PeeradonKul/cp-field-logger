@@ -106,6 +106,14 @@
   .gps-box{display:flex; align-items:center; gap:10px; background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;}
   .gps-box .txt{flex:1; font-family:var(--mono); font-size:12.5px; color:var(--muted);}
   .gps-box .txt.got{color:var(--good);}
+  .near-item{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px 12px;
+    text-align:left; color:var(--text); font-size:13.5px;
+  }
+  .near-item b{font-family:var(--mono); color:var(--on); font-weight:600;}
+  .near-item .dist{font-family:var(--mono); font-size:12px; color:var(--warn); flex:none;}
+  .near-item.closest{border-color:var(--on);}
   .photo-preview{display:flex; gap:8px; margin:-4px 0 12px; flex-wrap:wrap;}
   .photo-preview img{width:64px;height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border);}
   hr{border:none; border-top:1px solid var(--border); margin:14px 0;}
@@ -149,7 +157,8 @@
       <div class="grid2">
         <div>
           <span class="label">KP / จุดวัด</span>
-          <input type="text" id="f-kp" inputmode="decimal" placeholder="เช่น 21.194" />
+          <input type="text" id="f-kp" inputmode="decimal" placeholder="เช่น 21.194" list="kpList" autocomplete="off" />
+          <datalist id="kpList"></datalist>
         </div>
         <div>
           <span class="label">Test post type</span>
@@ -160,7 +169,8 @@
       </div>
 
       <span class="label">รายละเอียดตำแหน่ง (Location)</span>
-      <input type="text" id="f-location" placeholder="เช่น ใกล้ SBV-1 / ทุ่งนาบ้านโนนจิก" />
+      <input type="text" id="f-location" placeholder="เช่น ใกล้ SBV-1 / ทุ่งนาบ้านโนนจิก" list="locList" autocomplete="off" />
+      <datalist id="locList"></datalist>
 
       <div class="readout">
         <div class="on"><div class="v" id="ro-on">–</div><div class="k">ON (V)</div></div>
@@ -204,6 +214,10 @@
       <div class="gps-box">
         <span class="txt" id="gpsTxt">ยังไม่ได้จับพิกัด</span>
         <button class="btn small teal" id="btnGps" style="margin:0;">📍 จับพิกัด</button>
+      </div>
+      <div id="nearestWrap" style="display:none; margin:-6px 0 12px;">
+        <span class="label" style="margin-bottom:8px;">จุดใกล้เคียง (แตะเพื่อเติมให้)</span>
+        <div id="nearestList" style="display:flex; flex-direction:column; gap:6px;"></div>
       </div>
 
       <span class="label">รูปถ่าย</span>
@@ -392,6 +406,163 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+/* ---------- Reference station database (from past inspection report, incl. real UTM coordinates) ---------- */
+/* Fields per station: [kp, location, northing, easting] — coordinates are UTM Zone 48N (Khon Kaen area) */
+const REF_STATIONS = {
+  '16" Sinphuhorm Pipeline': [
+    ['0','Wellpad A',1890038.325,255881.6783],['1','บนภูเขา',1889225.453,256120.5814],
+    ['3','ภูฮ่อม',1887353.769,256329.3459],['5.025','ติดถนนทางเข้าหลุม 7',1885668.433,257172.2762],
+    ['6','ติดถนนทางเข้าหลุม 7',1884652.672,257723.1393],['7','ไร่มัน',1884269.312,257684.9551],
+    ['9.575','ไร่อ้อย',1882679.595,259202.0891],['10.915','ไร่อ้อย',1881901.724,258335.5965],
+    ['13','ไร่มันสำประหลัง',1879987.496,257922.8001],['14.34','ไร่มันสำประหลัง',1878658.885,257768.8891],
+    ['15.355','ไร่อ้อย',1877721.376,257463.2396],['17.15','ไร่อ้อย',1876019.919,257319.1796],
+    ['18.64','สวนยาง',1874667.152,256703.1998],['19.7','ไร่มันสำประหลัง',1873713.154,256546.4686],
+    ['20.807','ไร่มันสำประหลัง',1872737.278,256208.3156],['21.194','SBV-1',1872460.192,255917.3466],
+    ['23','ระหว่างยูคากับไร่มัน',1871119.432,254906.9846],['24.6','ไร่มันถนนเข้าถึง',1870382.621,253537.6573],
+    ['24.99','ไร่มันถนนเข้าถึง',1870372.435,253148.5029],['26.945','ไร่มันถนนเข้าถึง',1868922.355,251871.8705],
+    ['29','เขียงนาถนนเข้าถึง',1867436.539,250656.8332],['31.5','ที่โล่งตรงข้ามสวนยูคา',1865191.683,249963.8778],
+    ['33.38','ติดถนนลาดยาง',1863555.88,250038.6261],['35.35','ป่ายูคาถนนเข้าถึง',1861678.753,250234.951],
+    ['36.92','ไร่มันติดถนนลูกลัง',1860265.033,250255.532],['36.98','ไร่มันถนนเข้าถึง',1860189.366,250256.418],
+    ['39.425','ไร่มันสำประหลัง',1857699.569,250301.624],['41.675','SBV-2',1853764.578,250377.843],
+    ['42.7','SBV-3',1854580.528,250348.348],['43.5','ทุ่งนาบ้านโนนจิก',1853827.056,250243.460],
+    ['44.74','ข้างถนนเขื่อนเลยทุ่งโปร่ง',1852897.059,249460.877],['46.97','กลางทุ่งนาบ้านทุ่งโปร่ง',1851206.265,250601.968],
+    ['49.43','โรงมันสำปะหลัง',1849287.582,252146.017],['51.25','',1849012.799,253241.747],
+    ['52.376','ข้างศูนย์เศรษฐกิจพอเพียง',1847602.127,254118.082],['54.7','SBV4',1847477.392,256296.846],
+    ['56.15','ป่ามัน',1846764.724,257464.170],['57.24','Current span',1845781.831,257413.832],
+    ['58.413','',1845706.691,258666.764],['59.002','หน้าโรงไฟฟ้า',1845329.858,258867.015],
+    ['59.53','ป่ามัน',1845283.352,259389.351],['59.6','ใกล้ M/R PTT',1845343.771,259430.935],
+    ['61.328','หน้าหมู่บ้านใหม่พัฒนา',1845675.153,260805.829],['61.993','ทุ่งนาหลังวัดคำใหญ่',1845611.174,261409.767],
+    ['62.49','กระท่อมหลัง EXXON',1845561.341,261905.380],['62.95','',1845503.583,262285.313],
+    ['63.175','ใน GPP',1845296.532,262570.500]
+  ],
+  '10" Production Flow Line PH3–PH5': [
+    ['0','SPH3',1892587.967,256708.4405],['1.45','Road side',1892501.515,255587.7234],
+    ['2.707','Road side',1891644.991,255458.7208],['4.604','SPH5',1890193.305,255883.5019]
+  ],
+  '10" Production Flow Line PH4–PH5': [
+    ['0','SPH4',1894602.752,254851.3367],['2','Road side',1892689.524,254512.8181],
+    ['4','Road side',1891672.813,255446.6235],['5.915','SPH5',1890042.058,255878.1763]
+  ],
+  'Condensate Tank A': [
+    ['NE','Condensate A NE',1845228.83,262590.89],['SE','Condensate A SE',1845223.62,262589.94],
+    ['SW','Condensate A SW',1845225.26,262583.83],['NW','Condensate A NW',1845230.51,262584.74]
+  ],
+  'Condensate Tank B': [
+    ['NE','Condensate B NE',1845194.76,262589.29],['SE','Condensate B SE',1845188.77,262588.27],
+    ['SW','Condensate B SW',1845187.84,262581.08],['NW','Condensate B NW',1845193.61,262580.91]
+  ],
+  'Fire Water Tank': [
+    ['W','Fire water tank- W',1845078,262454],['N','Fire water tank- N',1845086,262465],
+    ['E','Fire water tank- E',1845077,262470],['S','Fire water tank- S',1845070,262462]
+  ],
+  'GPP Buried Pipeline': [
+    ['0','Sale condensate',1845375,262499],['4','To PTT',1845172,262450],
+    ['3','North West Corner',1845296,262570],['2','West Side of Closed Drain Area',1845124,262556]
+  ],
+  'Closed Drain Line': [] // no reliable coordinates in source data — skipped from GPS matching
+};
+
+/* ---------- Lat/Lon (WGS84, from device GPS) -> UTM Zone 48N meters ---------- */
+function latLonToUTM(lat, lon) {
+  const a = 6378137.0, f = 1/298.257223563, k0 = 0.9996;
+  const e2 = f*(2-f), ep2 = e2/(1-e2);
+  const lonOrigin = 105; // zone 48 central meridian
+  const latR = lat*Math.PI/180, lonR = lon*Math.PI/180, lonOR = lonOrigin*Math.PI/180;
+  const N = a/Math.sqrt(1-e2*Math.sin(latR)*Math.sin(latR));
+  const T = Math.tan(latR)**2, C = ep2*Math.cos(latR)**2, A = Math.cos(latR)*(lonR-lonOR);
+  const M = a*((1-e2/4-3*e2*e2/64-5*e2**3/256)*latR
+    - (3*e2/8+3*e2*e2/32+45*e2**3/1024)*Math.sin(2*latR)
+    + (15*e2*e2/256+45*e2**3/1024)*Math.sin(4*latR)
+    - (35*e2**3/3072)*Math.sin(6*latR));
+  const easting = k0*N*(A + (1-T+C)*A**3/6 + (5-18*T+T*T+72*C-58*ep2)*A**5/120) + 500000;
+  const northing = k0*(M + N*Math.tan(latR)*(A*A/2 + (5-T+9*C+4*C*C)*A**4/24 + (61-58*T+T*T+600*C-330*ep2)*A**6/720));
+  return { n: northing, e: easting };
+}
+
+let kpLocMap = {}; // "asset||kp" -> location
+let geoIndex = []; // [{kp, loc, n, e}] for the currently selected asset (ref + learned history)
+
+async function refreshKpList(){
+  const asset = document.getElementById('f-asset').value;
+  const dl = document.getElementById('kpList');
+  const locDl = document.getElementById('locList');
+  dl.innerHTML = ''; locDl.innerHTML = '';
+  kpLocMap = {}; geoIndex = [];
+
+  const seenLoc = new Set();
+  const ref = REF_STATIONS[asset] || [];
+  ref.forEach(([kp, loc, n, e]) => {
+    kpLocMap[asset+'||'+kp] = loc;
+    const opt = document.createElement('option');
+    opt.value = kp; opt.label = loc;
+    dl.appendChild(opt);
+    if (loc && !seenLoc.has(loc)) { seenLoc.add(loc); const o2=document.createElement('option'); o2.value=loc; locDl.appendChild(o2); }
+    if (n && e) geoIndex.push({ kp, loc, n, e });
+  });
+
+  // merge in KPs (and their GPS, if captured) the team has actually recorded before for this asset
+  try {
+    const records = await getAllRecords();
+    const seenKp = new Set(ref.map(r=>r[0]));
+    records.filter(r => r.asset === asset).forEach(r => {
+      if (r.kp && !seenKp.has(r.kp)) {
+        seenKp.add(r.kp);
+        const opt = document.createElement('option');
+        opt.value = r.kp; opt.label = r.location || '';
+        dl.appendChild(opt);
+        if (r.kp && r.location) kpLocMap[asset+'||'+r.kp] = r.location;
+      }
+      if (r.location && !seenLoc.has(r.location)) {
+        seenLoc.add(r.location);
+        const o2=document.createElement('option'); o2.value=r.location; locDl.appendChild(o2);
+      }
+      if (r.gps && r.gps.lat && r.gps.lng) {
+        const utm = latLonToUTM(r.gps.lat, r.gps.lng);
+        geoIndex.push({ kp: r.kp, loc: r.location, n: utm.n, e: utm.e });
+      }
+    });
+  } catch(e) { /* db not ready yet on first paint, ignore */ }
+}
+document.getElementById('f-asset').addEventListener('change', refreshKpList);
+
+/* ---------- Nearest-station suggestions after GPS capture ---------- */
+function renderNearest(lat, lng){
+  const wrap = document.getElementById('nearestWrap');
+  const list = document.getElementById('nearestList');
+  list.innerHTML = '';
+  if (!geoIndex.length) { wrap.style.display = 'none'; return; }
+
+  const here = latLonToUTM(lat, lng);
+  const ranked = geoIndex
+    .map(s => ({ ...s, dist: Math.hypot(s.n-here.n, s.e-here.e) }))
+    .sort((a,b) => a.dist - b.dist)
+    .slice(0, 4);
+
+  if (!ranked.length || ranked[0].dist > 20000) { wrap.style.display = 'none'; return; }
+
+  ranked.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'near-item' + (i===0 ? ' closest' : '');
+    btn.innerHTML = `<span><b>KP ${escapeHtml(s.kp)}</b> ${escapeHtml(s.loc||'')}</span><span class="dist">~${Math.round(s.dist)} m</span>`;
+    btn.addEventListener('click', () => {
+      document.getElementById('f-kp').value = s.kp;
+      document.getElementById('f-location').value = s.loc || document.getElementById('f-location').value;
+      toast('✅ เติมจุด KP ' + s.kp + ' ให้แล้ว');
+    });
+    list.appendChild(btn);
+  });
+  wrap.style.display = 'block';
+}
+
+// auto-fill Location when a known KP is chosen/typed, but never overwrite something the user already wrote
+document.getElementById('f-kp').addEventListener('input', () => {
+  const asset = document.getElementById('f-asset').value;
+  const kp = document.getElementById('f-kp').value.trim();
+  const match = kpLocMap[asset+'||'+kp];
+  const locField = document.getElementById('f-location');
+  if (match && !locField.value.trim()) locField.value = match;
+});
+
 /* ---------- Live readout ---------- */
 function fmt(n){ return (n===null||n===undefined||isNaN(n)) ? '–' : Number(n).toFixed(3); }
 function updateReadout(){
@@ -414,6 +585,7 @@ document.getElementById('btnGps').addEventListener('click', () => {
     currentGps = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
     box.textContent = `${currentGps.lat.toFixed(6)}, ${currentGps.lng.toFixed(6)} (±${Math.round(currentGps.acc)}m)`;
     box.classList.add('got');
+    renderNearest(currentGps.lat, currentGps.lng);
   }, err => {
     box.textContent = 'จับพิกัดไม่สำเร็จ: ' + err.message;
   }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
@@ -488,6 +660,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
   await addRecord(rec);
   toast('✅ บันทึกแล้ว (' + rec.kp + ')');
   clearForm();
+  refreshKpList();
 });
 
 function val(id){ return document.getElementById(id).value.trim(); }
@@ -497,6 +670,7 @@ function clearForm(){
   currentGps = null; currentPhotos = [];
   document.getElementById('gpsTxt').textContent = 'ยังไม่ได้จับพิกัด';
   document.getElementById('gpsTxt').classList.remove('got');
+  document.getElementById('nearestWrap').style.display = 'none';
   renderPhotoPreview();
   updateReadout();
 }
@@ -636,6 +810,7 @@ async function init(){
   if (RECORDED_BY) document.getElementById('s-name').value = RECORDED_BY;
   else document.getElementById('firstRunBanner').style.display = 'flex';
   updateReadout();
+  refreshKpList();
 }
 init();
 </script>

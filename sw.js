@@ -1,6 +1,6 @@
 // CP Field Logger — Service Worker
 // Caches the app shell + SheetJS so the app (including Excel export) works with zero signal.
-const CACHE_NAME = 'cp-field-logger-v1';
+const CACHE_NAME = 'cp-field-logger-v3';
 const ASSETS = [
   './',
   './index.html',
