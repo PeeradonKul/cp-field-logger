@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png" />
 <style>
   :root{
-    --bg:#0F1417; --panel:#161E22; --panel2:#1B2529; --border:#2A353A;
+    --bg:#0F1417; --panel:#161E22; --panel2:#235e75; --border:#2A353A;
     --text:#F2F5F5; --muted:#8FA0A5; --on:#2DD4BF; --off:#FF6A13;
     --good:#22C55E; --warn:#F59E0B; --bad:#EF4444;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -648,6 +648,22 @@ function syncToCloud(rec){
     });
   }
 }
+
+/* Pulls every teammate's Transformer readings down whenever there's a signal, so buttons like
+   "ดึง Vdc ล่าสุดจาก Rectifier" still work later even with zero signal — reading from this local mirror. */
+async function refreshCloudTransformerCache(){
+  if (!dbCloud || !navigator.onLine) return;
+  try {
+    const snap = await dbCloud.collection('cp_records').where('formType', '==', 'transformer').get();
+    const items = snap.docs.map(d => {
+      const data = d.data();
+      return { id: d.id, equip: data.equip, dcVoltage: data.dcVoltage, timestamp: data.timestamp, recordedBy: data.recordedBy };
+    }).filter(i => i.equip && i.dcVoltage != null);
+    if (items.length) await putCloudCache(items);
+  } catch (e) { console.warn('cloud transformer cache refresh failed', e); }
+}
+window.addEventListener('online', refreshCloudTransformerCache);
+
 /* ---------- Register service worker ---------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
@@ -655,7 +671,7 @@ if ('serviceWorker' in navigator) {
 
 /* ---------- IndexedDB helper ---------- */
 const DB_NAME = 'cp-field-logger';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let dbp = new Promise((resolve, reject) => {
   const req = indexedDB.open(DB_NAME, DB_VERSION);
   req.onupgradeneeded = (e) => {
@@ -665,6 +681,9 @@ let dbp = new Promise((resolve, reject) => {
     }
     if (!db.objectStoreNames.contains('settings')) {
       db.createObjectStore('settings', { keyPath: 'key' });
+    }
+    if (!db.objectStoreNames.contains('cloudCache')) {
+      db.createObjectStore('cloudCache', { keyPath: 'id' }); // lightweight offline mirror of teammates' cloud records (no photos)
     }
   };
   req.onsuccess = (e) => resolve(e.target.result);
@@ -717,6 +736,18 @@ async function updateRecord(rec) {
   const tx = db.transaction('records','readwrite');
   tx.objectStore('records').put(rec);
   return new Promise(res => tx.oncomplete = res);
+}
+async function putCloudCache(items) {
+  const db = await dbp;
+  const tx = db.transaction('cloudCache','readwrite');
+  const store = tx.objectStore('cloudCache');
+  items.forEach(item => store.put(item));
+  return new Promise(res => tx.oncomplete = res);
+}
+async function getAllCloudCache() {
+  const db = await dbp;
+  const tx = db.transaction('cloudCache','readonly');
+  return reqToPromise(tx.objectStore('cloudCache').getAll());
 }
 
 /* ---------- Device ID ---------- */
@@ -1241,14 +1272,21 @@ document.getElementById('btnFetchVdc').addEventListener('click', async () => {
   const tag = getComboValue('a-tag-select', 'a-tag-new');
   const info = anodeMap[tag];
   if (!info || !info.rectifierTag) { toast('⚠️ ไม่พบเรคติไฟเออร์ที่เชื่อมกับจุดนี้ (อาจเป็น Sacrificial anode ที่ไม่มี Vdc)'); return; }
-  const records = await getAllRecords();
-  const matches = records
+
+  const [localRecords, cached] = await Promise.all([getAllRecords(), getAllCloudCache()]);
+  const localMatches = localRecords
     .filter(r => r.formType === 'transformer' && r.equip === info.rectifierTag && r.dcVoltage != null)
-    .sort((a,b) => b.timestamp.localeCompare(a.timestamp));
-  if (!matches.length) { toast('⚠️ ยังไม่มีข้อมูล Transformer ของ ' + info.rectifierTag + ' ในเครื่องนี้ (ต้องจดจากเครื่องเดียวกัน)'); return; }
-  document.getElementById('a-output').value = matches[0].dcVoltage;
+    .map(r => ({ dcVoltage: r.dcVoltage, timestamp: r.timestamp, recordedBy: r.recordedBy, source: 'เครื่องนี้' }));
+  const cachedMatches = cached
+    .filter(c => c.equip === info.rectifierTag && c.dcVoltage != null)
+    .map(c => ({ dcVoltage: c.dcVoltage, timestamp: c.timestamp, recordedBy: c.recordedBy, source: 'คลาวด์ (แคชไว้ล่วงหน้า)' }));
+
+  const all = [...localMatches, ...cachedMatches].sort((a,b) => b.timestamp.localeCompare(a.timestamp));
+  if (!all.length) { toast('⚠️ ยังไม่มีข้อมูล Transformer ของ ' + info.rectifierTag + ' ทั้งในเครื่องนี้และแคชคลาวด์ (ต้องเคยมีสัญญาณอย่างน้อย 1 ครั้งตั้งแต่เปิดแอป)'); return; }
+
+  document.getElementById('a-output').value = all[0].dcVoltage;
   updateAnodeCalc();
-  toast('✅ ดึงค่า Vdc = ' + matches[0].dcVoltage + ' V (บันทึกเมื่อ ' + new Date(matches[0].timestamp).toLocaleString('th-TH') + ')');
+  toast(`✅ ดึงค่า Vdc = ${all[0].dcVoltage} V จาก${all[0].source} (บันทึกเมื่อ ${new Date(all[0].timestamp).toLocaleString('th-TH')})`);
 });
 
 /* ---------- Live readout ---------- */
@@ -1652,6 +1690,7 @@ async function init(){
   refreshInsjointList();
   refreshAnodeList();
   if (dbCloud) { (await getAllRecords()).forEach(syncToCloud); }
+  refreshCloudTransformerCache();
 }
 init();
 </script>
