@@ -40,7 +40,27 @@
   }
   button.btn.primary{background:var(--off); border-color:var(--off); color:#1a0e00; font-weight:600;}
   button.btn.teal{background:var(--on); border-color:var(--on); color:#062421; font-weight:600;}
+  button.btn.danger{background:var(--bad); border-color:var(--bad); color:#fff; font-weight:600;}
+  button.btn.small{padding:6px 10px; font-size:12px;}
   button.btn:hover{filter:brightness(1.1);}
+  input[type=text], input[type=number], textarea{
+    width:100%; background:var(--panel2); border:1px solid var(--border); color:var(--text); border-radius:8px;
+    padding:9px 10px; font-size:13.5px; font-family:var(--sans); box-sizing:border-box;
+  }
+  .field-label{font-size:11.5px; color:var(--muted); margin-bottom:4px; display:block;}
+  .field-row{margin-bottom:12px;}
+  #editModal{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; overflow:auto; padding:20px;
+  }
+  #editModal .modal-box{
+    max-width:620px; margin:0 auto; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px;
+  }
+  .edit-photo-box{position:relative; display:inline-block;}
+  .edit-photo-box img{width:90px; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--border);}
+  .edit-photo-box .del-photo{
+    position:absolute; top:-6px; right:-6px; background:var(--bad); color:#fff; border:none; border-radius:50%;
+    width:22px; height:22px; cursor:pointer; font-size:12px; line-height:1;
+  }
   table{width:100%; border-collapse:collapse; font-size:12.5px;}
   thead th{
     text-align:left; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px;
@@ -113,8 +133,8 @@
         <table>
           <thead>
             <tr>
-              <th>KP</th><th>Location</th><th>On (V)</th><th>Off (V)</th><th>IR Drop</th><th>AC</th>
-              <th>Gas Leak</th><th>Soil</th><th>ผู้บันทึก</th><th>เวลา</th><th>รูป</th><th>ที่มา</th>
+              <th>รายการ</th><th>On (V)</th><th>Off (V)</th><th>IR Drop</th><th>AC</th>
+              <th>Soil</th><th>ผู้บันทึก</th><th>เวลา</th><th>รูป</th><th>ที่มา</th><th>จัดการ</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -133,6 +153,26 @@
   <div class="empty" id="emptyMsg">ยังไม่มีข้อมูล — เลือกไฟล์ JSON เพื่อเริ่มรวมข้อมูล</div>
 
 </main>
+
+<div id="editModal">
+  <div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 id="editModalTitle" style="margin:0; font-size:15px;">แก้ไขรายการ</h3>
+      <button class="btn small" id="btnCloseEdit">✕ ปิด</button>
+    </div>
+    <div id="editFormFields"></div>
+    <div class="field-row">
+      <span class="field-label">รูปภาพ</span>
+      <div id="editPhotos" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:6px;"></div>
+      <input type="file" id="editAddPhotoInput" accept="image/*" multiple style="display:none;" />
+      <button class="btn small" id="btnAddPhoto" style="margin-top:10px;">➕ เพิ่มรูป</button>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:18px;">
+      <button class="btn teal" id="btnSaveEdit" style="flex:1;">💾 บันทึกการแก้ไข</button>
+      <button class="btn danger" id="btnDeleteRecord">🗑️ ลบทั้งรายการ</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
@@ -187,6 +227,228 @@ document.getElementById('btnRefreshCloud').addEventListener('click', () => {
   listenCloud();
 });
 listenCloud();
+
+/* ---------- Edit / delete a record ---------- */
+const FIELD_SCHEMAS = {
+  test_station: [
+    { key:'asset', label:'Asset', type:'text' },
+    { key:'kp', label:'KP', type:'text' },
+    { key:'location', label:'Location', type:'text' },
+    { key:'postType', label:'Post Type', type:'text' },
+    { key:'onDC', label:'On Potential (V)', type:'number' },
+    { key:'offDC', label:'Off Potential (V)', type:'number' },
+    { key:'ac', label:'AC (V)', type:'number' },
+    { key:'soil', label:'Soil', type:'select', options:['D','W'] },
+    { key:'remark', label:'Remark', type:'textarea' }
+  ],
+  transformer: [
+    { key:'equip', label:'Equipment', type:'text' },
+    { key:'kp', label:'KP', type:'text' },
+    { key:'location', label:'Location', type:'text' },
+    { key:'structure', label:'Structure', type:'text' },
+    { key:'dcVoltage', label:'DC Voltage (V)', type:'number' },
+    { key:'acVoltage', label:'AC Voltage (V)', type:'number' },
+    { key:'dcCurrent', label:'DC Current (A)', type:'number' },
+    { key:'acCurrent', label:'AC Current (A)', type:'number' },
+    { key:'tap', label:'TAP', type:'text' },
+    { key:'rating', label:'Rating (A / V)', type:'text' },
+    { key:'psOn', label:'P/S On (V)', type:'number' },
+    { key:'psOff', label:'P/S Off (V)', type:'number' },
+    { key:'remark', label:'Remark', type:'textarea' }
+  ],
+  bondbox: [
+    { key:'loc', label:'Location', type:'text' },
+    { key:'structA', label:'Structure A', type:'text' },
+    { key:'structB', label:'Structure B', type:'text' },
+    { key:'aOn', label:'A: P/S On (V)', type:'number' },
+    { key:'aOff', label:'A: P/S Off (V)', type:'number' },
+    { key:'bOn', label:'B: P/S On (V)', type:'number' },
+    { key:'bOff', label:'B: P/S Off (V)', type:'number' },
+    { key:'bondCurrent', label:'Bond Current (A)', type:'number' },
+    { key:'direction', label:'Direction', type:'text' },
+    { key:'bondingType', label:'Bonding Type', type:'text' },
+    { key:'resistor', label:'Resistor (Ohm)', type:'number' },
+    { key:'remark', label:'Remark', type:'textarea' }
+  ],
+  decoupler: [
+    { key:'tag', label:'Tag No.', type:'text' },
+    { key:'protected', label:'Protected Equipment', type:'text' },
+    { key:'location', label:'Location', type:'text' },
+    { key:'dvac', label:'DVac (V)', type:'number' },
+    { key:'iac', label:'Iac (A)', type:'number' },
+    { key:'dvdc', label:'DVdc (V)', type:'number' },
+    { key:'idc', label:'Idc (A)', type:'number' },
+    { key:'func', label:'Function', type:'select', options:['Pass','Fail'] },
+    { key:'remark', label:'Remark', type:'textarea' }
+  ],
+  insjoint: [
+    { key:'tag', label:'Tag No.', type:'text' },
+    { key:'type', label:'Type', type:'text' },
+    { key:'location', label:'Location', type:'text' },
+    { key:'vs', label:'Vs (V)', type:'number' },
+    { key:'vp', label:'Vp (V)', type:'number' },
+    { key:'checker', label:'Insulation Checker', type:'select', options:['Pass','Shorted'] },
+    { key:'remark', label:'Remark', type:'textarea' }
+  ],
+  anode: [
+    { key:'tag', label:'Tag', type:'text' },
+    { key:'location', label:'Location', type:'text' },
+    { key:'type', label:'Type', type:'text' },
+    { key:'output', label:'Rectifier Output (Vdc)', type:'number' },
+    { key:'func', label:'Function', type:'select', options:['Pass','Fail'] },
+    { key:'current', label:'Anode Current (A)', type:'number' },
+    { key:'resistance', label:'Resistance (Ohm)', type:'number' },
+    { key:'remark', label:'Remark', type:'textarea' }
+  ]
+};
+
+let editingRecordId = null;
+let editingPhotos = [];
+
+async function editRecord(id){
+  const rec = merged.get(id);
+  if (!rec) return;
+  if (rec.hasPhotos && (!rec.photos || !rec.photos.length) && cloudIds.has(id) && dbCloud) {
+    try {
+      const snap = await dbCloud.collection('cp_records').doc(id).collection('photos').orderBy('index').get();
+      rec.photos = snap.docs.map(d => d.data().data);
+    } catch (e) { console.warn(e); }
+  }
+  openEditModal(rec);
+}
+
+function openEditModal(record){
+  editingRecordId = record.id;
+  document.getElementById('editModalTitle').textContent = 'แก้ไข: ' + getRecordLabel(record);
+  const schema = FIELD_SCHEMAS[record.formType || 'test_station'];
+  const container = document.getElementById('editFormFields');
+  container.innerHTML = '';
+  schema.forEach(f => {
+    const wrap = document.createElement('div');
+    wrap.className = 'field-row';
+    const label = document.createElement('span');
+    label.className = 'field-label';
+    label.textContent = f.label;
+    wrap.appendChild(label);
+    let input;
+    if (f.type === 'select') {
+      input = document.createElement('select');
+      f.options.forEach(o => { const opt = document.createElement('option'); opt.value = o; opt.textContent = o; input.appendChild(opt); });
+      input.value = record[f.key] || f.options[0];
+    } else if (f.type === 'textarea') {
+      input = document.createElement('textarea');
+      input.rows = 2;
+      input.value = record[f.key] || '';
+    } else {
+      input = document.createElement('input');
+      input.type = f.type === 'number' ? 'number' : 'text';
+      if (f.type === 'number') input.step = '0.001';
+      input.value = record[f.key] != null ? record[f.key] : '';
+    }
+    input.dataset.field = f.key;
+    wrap.appendChild(input);
+    container.appendChild(wrap);
+  });
+
+  editingPhotos = record.photos ? [...record.photos] : [];
+  renderEditPhotos();
+  document.getElementById('editModal').style.display = 'block';
+}
+
+function renderEditPhotos(){
+  const wrap = document.getElementById('editPhotos');
+  wrap.innerHTML = '';
+  editingPhotos.forEach((src, i) => {
+    const box = document.createElement('div');
+    box.className = 'edit-photo-box';
+    const img = document.createElement('img');
+    img.src = src;
+    const del = document.createElement('button');
+    del.className = 'del-photo';
+    del.textContent = '✕';
+    del.addEventListener('click', () => { editingPhotos.splice(i, 1); renderEditPhotos(); });
+    box.appendChild(img);
+    box.appendChild(del);
+    wrap.appendChild(box);
+  });
+}
+
+document.getElementById('btnCloseEdit').addEventListener('click', () => {
+  document.getElementById('editModal').style.display = 'none';
+  editingRecordId = null;
+});
+
+document.getElementById('btnAddPhoto').addEventListener('click', () => document.getElementById('editAddPhotoInput').click());
+document.getElementById('editAddPhotoInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  for (const file of files) {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    editingPhotos.push(dataUrl);
+  }
+  renderEditPhotos();
+  e.target.value = '';
+});
+
+document.getElementById('btnSaveEdit').addEventListener('click', async () => {
+  if (!editingRecordId || !dbCloud) return;
+  const rec = merged.get(editingRecordId);
+  const schema = FIELD_SCHEMAS[rec.formType || 'test_station'];
+  const updates = {};
+  document.querySelectorAll('#editFormFields [data-field]').forEach(input => {
+    const f = schema.find(s => s.key === input.dataset.field);
+    let v = input.value;
+    if (f.type === 'number') v = (v === '') ? null : parseFloat(v);
+    updates[input.dataset.field] = v;
+  });
+  updates.hasPhotos = editingPhotos.length > 0;
+
+  try {
+    await dbCloud.collection('cp_records').doc(editingRecordId).set(updates, { merge: true });
+
+    const photosRef = dbCloud.collection('cp_records').doc(editingRecordId).collection('photos');
+    const existingSnap = await photosRef.get();
+    await Promise.all(existingSnap.docs.map(d => d.ref.delete()));
+    await Promise.all(editingPhotos.map((dataUrl, i) => photosRef.doc(String(i)).set({ data: dataUrl, index: i })));
+
+    Object.assign(rec, updates);
+    rec.photos = editingPhotos;
+
+    document.getElementById('editModal').style.display = 'none';
+    editingRecordId = null;
+    render();
+    alert('✅ บันทึกการแก้ไขแล้ว');
+  } catch (e) {
+    console.error(e);
+    alert('บันทึกไม่สำเร็จ: ' + e.message);
+  }
+});
+
+document.getElementById('btnDeleteRecord').addEventListener('click', async () => {
+  if (!editingRecordId || !dbCloud) return;
+  if (!confirm('ลบรายการนี้ถาวร (รวมรูปภาพ) ยืนยันหรือไม่?')) return;
+  try {
+    const photosRef = dbCloud.collection('cp_records').doc(editingRecordId).collection('photos');
+    const existingSnap = await photosRef.get();
+    await Promise.all(existingSnap.docs.map(d => d.ref.delete()));
+    await dbCloud.collection('cp_records').doc(editingRecordId).delete();
+
+    merged.delete(editingRecordId);
+    cloudIds.delete(editingRecordId);
+
+    document.getElementById('editModal').style.display = 'none';
+    editingRecordId = null;
+    render();
+    alert('🗑️ ลบรายการแล้ว');
+  } catch (e) {
+    console.error(e);
+    alert('ลบไม่สำเร็จ: ' + e.message);
+  }
+});
 
 async function fetchMissingCloudPhotos(){
   const targets = Array.from(merged.values()).filter(r => cloudIds.has(r.id) && r.hasPhotos && (!r.photos || !r.photos.length));
@@ -282,16 +544,19 @@ function renderTableAndChart(records){
   tbody.innerHTML = filtered.map(r => {
     const ir = (r.onDC!=null && r.offDC!=null) ? (r.onDC - r.offDC).toFixed(3) : '';
     return `<tr>
-      <td>${escapeHtml(r.kp||'-')}</td>
-      <td style="font-family:var(--sans); white-space:normal;">${escapeHtml(r.location||'')}</td>
+      <td style="font-family:var(--sans); white-space:normal;">${escapeHtml(getRecordLabel(r))}</td>
       <td>${fmt(r.onDC)}</td><td>${fmt(r.offDC)}</td><td>${ir}</td>
-      <td>${fmt(r.ac)}</td><td>${fmt(r.gasLeak)}</td><td>${escapeHtml(r.soil||'')}</td>
+      <td>${fmt(r.ac)}</td><td>${escapeHtml(r.soil||'')}</td>
       <td style="font-family:var(--sans);">${escapeHtml(r.recordedBy||'')}</td>
       <td>${r.timestamp ? new Date(r.timestamp).toLocaleString('th-TH') : ''}</td>
       <td>${(r.photos||[]).length}</td>
       <td><span class="badge">${cloudIds.has(r.id) ? '☁️ คลาวด์' : '📁 ไฟล์'}</span></td>
+      <td><button class="btn small edit-btn" data-edit-id="${r.id}">✏️ แก้ไข</button></td>
     </tr>`;
   }).join('');
+  tbody.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => editRecord(btn.dataset.editId));
+  });
 
   // chart — only numeric KPs, sorted ascending
   const chartData = filtered
