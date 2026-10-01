@@ -607,11 +607,41 @@ const ASSET_SHEET_ORDER = [
   ['Closed Drain Line', 'Closed Drain']
 ];
 
+/* Builds a sheet laid out like the original report: title row, a merged "Pipe/Soil Potential"
+   header over on/off/AC DC, and High/Low reference columns + a computed IR Drop column.
+   (No cell colouring — the free SheetJS build used here can't apply fill colours/conditional
+   formatting; add that in Excel afterward if needed, e.g. Conditional Formatting on the off DC column.) */
+const CP_HIGH_REF = -1.2, CP_LOW_REF = -0.85;
+function buildAssetSheet(title, rows){
+  const aoa = [
+    [title, '', '', '', '', '', '', '', ''],
+    ['KP', 'LOCATION', 'Test post type', 'Pipe/Soil Potential', '', '', 'High', 'Low', 'IR Drop'],
+    ['', '', '', 'on DC (V)', 'off DC (V)', 'AC (V)', '', '', '']
+  ];
+  rows.forEach(r => {
+    const ir = (r.onDC != null && r.offDC != null) ? +(r.onDC - r.offDC).toFixed(3) : '';
+    aoa.push([r.kp || '', r.location || '', r.postType || '', r.onDC ?? '', r.offDC ?? '', r.ac ?? '', CP_HIGH_REF, CP_LOW_REF, ir]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:8} },
+    { s:{r:1,c:0}, e:{r:2,c:0} },
+    { s:{r:1,c:1}, e:{r:2,c:1} },
+    { s:{r:1,c:2}, e:{r:2,c:2} },
+    { s:{r:1,c:3}, e:{r:1,c:5} },
+    { s:{r:1,c:6}, e:{r:2,c:6} },
+    { s:{r:1,c:7}, e:{r:2,c:7} },
+    { s:{r:1,c:8}, e:{r:2,c:8} }
+  ];
+  ws['!cols'] = [{wch:10},{wch:28},{wch:12},{wch:10},{wch:10},{wch:10},{wch:8},{wch:8},{wch:10}];
+  return ws;
+}
+
 document.getElementById('btnXlsx').addEventListener('click', () => {
   const records = Array.from(merged.values());
   const wb = XLSX.utils.book_new();
 
-  // One sheet per asset, columns matching Table A1–A8 in the original report
+  // One sheet per asset, laid out like the original report's Table A1–A8 (merged headers, High/Low/IR Drop)
   const testStationRecords = records.filter(r => (r.formType || 'test_station') === 'test_station');
   const usedAssets = new Set();
   ASSET_SHEET_ORDER.forEach(([assetName, sheetName]) => {
@@ -623,35 +653,19 @@ document.getElementById('btnXlsx').addEventListener('click', () => {
       if (!isNaN(ak) && !isNaN(bk)) return ak - bk;
       return String(a.kp).localeCompare(String(b.kp));
     });
-    const rows = assetRows.map(r => ({
-      KP: r.kp,
-      LOCATION: r.location || '',
-      'Power line (kV)': '',
-      'Distance (m)': '',
-      'Test post type': r.postType || '',
-      'on DC (V)': r.onDC,
-      'off DC (V)': r.offDC,
-      'AC (V)': r.ac,
-      'Gas Leak (% LEL)': '',
-      'Soil condition': r.soil || '',
-      REMARK: r.remark || '',
-      Lat: r.gps ? r.gps.lat : '', Lng: r.gps ? r.gps.lng : '',
-      RecordedBy: r.recordedBy || '', Timestamp: r.timestamp || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const ws = buildAssetSheet(assetName, assetRows);
     XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
   });
 
   // Any test-station records on an asset outside the known list (e.g. "อื่นๆ" or a custom-typed one)
   const otherRows = testStationRecords.filter(r => !usedAssets.has(r.asset));
   if (otherRows.length) {
-    const rows = otherRows.map(r => ({
-      Asset: r.asset || '', KP: r.kp, LOCATION: r.location || '', 'Test post type': r.postType || '',
-      'on DC (V)': r.onDC, 'off DC (V)': r.offDC, 'AC (V)': r.ac, 'Soil condition': r.soil || '',
-      REMARK: r.remark || '', Lat: r.gps ? r.gps.lat : '', Lng: r.gps ? r.gps.lng : '',
-      RecordedBy: r.recordedBy || '', Timestamp: r.timestamp || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
+    otherRows.sort((a, b) => {
+      const ak = parseFloat(a.kp), bk = parseFloat(b.kp);
+      if (!isNaN(ak) && !isNaN(bk)) return ak - bk;
+      return String(a.kp).localeCompare(String(b.kp));
+    });
+    const ws = buildAssetSheet('Other', otherRows);
     XLSX.utils.book_append_sheet(wb, ws, 'Other');
   }
 
