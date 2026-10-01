@@ -595,19 +595,87 @@ function fmt(n){ return (n===null||n===undefined||isNaN(n)) ? '' : Number(n).toF
 function escapeHtml(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 /* ---------- Exports ---------- */
+/* Asset → report sheet name, in the same order as the original report's Appendix A (Table A1–A8) */
+const ASSET_SHEET_ORDER = [
+  ['16" Sinphuhorm Pipeline', 'Sinphuhorm Pipeline'],
+  ['10" Production Flow Line PH3–PH5', 'PH3-PH5'],
+  ['10" Production Flow Line PH4–PH5', 'PH4-PH5'],
+  ['Condensate Tank A', 'Condensate A'],
+  ['Condensate Tank B', 'Condensate B'],
+  ['Fire Water Tank', 'Fire Water Tank'],
+  ['GPP Buried Pipeline', 'GPP Buried Pipeline'],
+  ['Closed Drain Line', 'Closed Drain']
+];
+
 document.getElementById('btnXlsx').addEventListener('click', () => {
   const records = Array.from(merged.values());
-  const rows = records.map(r => ({
-    KP: r.kp, Asset: r.asset, Location: r.location, PostType: r.postType,
-    'On DC (V)': r.onDC, 'Off DC (V)': r.offDC,
-    'IR Drop (V)': (r.onDC!=null && r.offDC!=null) ? +(r.onDC-r.offDC).toFixed(3) : '',
-    'AC (V)': r.ac, 'Gas Leak (%LEL)': r.gasLeak, Soil: r.soil, Remark: r.remark,
-    Lat: r.gps?r.gps.lat:'', Lng: r.gps?r.gps.lng:'', 'GPS Acc (m)': r.gps?r.gps.acc:'',
-    RecordedBy: r.recordedBy, Timestamp: r.timestamp, Photos: (r.photos||[]).length, RecordID: r.id
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'CP Records (Merged)');
+
+  // One sheet per asset, columns matching Table A1–A8 in the original report
+  const testStationRecords = records.filter(r => (r.formType || 'test_station') === 'test_station');
+  const usedAssets = new Set();
+  ASSET_SHEET_ORDER.forEach(([assetName, sheetName]) => {
+    const assetRows = testStationRecords.filter(r => r.asset === assetName);
+    if (!assetRows.length) return;
+    usedAssets.add(assetName);
+    assetRows.sort((a, b) => {
+      const ak = parseFloat(a.kp), bk = parseFloat(b.kp);
+      if (!isNaN(ak) && !isNaN(bk)) return ak - bk;
+      return String(a.kp).localeCompare(String(b.kp));
+    });
+    const rows = assetRows.map(r => ({
+      KP: r.kp,
+      LOCATION: r.location || '',
+      'Power line (kV)': '',
+      'Distance (m)': '',
+      'Test post type': r.postType || '',
+      'on DC (V)': r.onDC,
+      'off DC (V)': r.offDC,
+      'AC (V)': r.ac,
+      'Gas Leak (% LEL)': '',
+      'Soil condition': r.soil || '',
+      REMARK: r.remark || '',
+      Lat: r.gps ? r.gps.lat : '', Lng: r.gps ? r.gps.lng : '',
+      RecordedBy: r.recordedBy || '', Timestamp: r.timestamp || ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+  });
+
+  // Any test-station records on an asset outside the known list (e.g. "อื่นๆ" or a custom-typed one)
+  const otherRows = testStationRecords.filter(r => !usedAssets.has(r.asset));
+  if (otherRows.length) {
+    const rows = otherRows.map(r => ({
+      Asset: r.asset || '', KP: r.kp, LOCATION: r.location || '', 'Test post type': r.postType || '',
+      'on DC (V)': r.onDC, 'off DC (V)': r.offDC, 'AC (V)': r.ac, 'Soil condition': r.soil || '',
+      REMARK: r.remark || '', Lat: r.gps ? r.gps.lat : '', Lng: r.gps ? r.gps.lng : '',
+      RecordedBy: r.recordedBy || '', Timestamp: r.timestamp || ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Other');
+  }
+
+  // Raw Data sheet: every record from every tab, flattened
+  const rawRows = records.map(r => ({
+    FormType: r.formType || 'test_station', RecordLabel: getRecordLabel(r),
+    Asset: r.asset || '', KP: r.kp || '', Location: r.location || r.loc || '', PostType: r.postType || '',
+    OnDC: r.onDC, OffDC: r.offDC,
+    IRDrop: (r.onDC != null && r.offDC != null) ? +(r.onDC - r.offDC).toFixed(3) : '',
+    AC: r.ac, Soil: r.soil || '', Remark: r.remark || '',
+    Equip: r.equip || '', Structure: r.structure || '', DCVoltage: r.dcVoltage, ACVoltage: r.acVoltage,
+    DCCurrent: r.dcCurrent, ACCurrent: r.acCurrent, TAP: r.tap || '', Rating: r.rating || '',
+    PSOn: r.psOn, PSOff: r.psOff,
+    StructA: r.structA || '', StructB: r.structB || '', AOn: r.aOn, AOff: r.aOff, BOn: r.bOn, BOff: r.bOff,
+    BondCurrent: r.bondCurrent, Direction: r.direction || '', BondingType: r.bondingType || '', Resistor: r.resistor,
+    Tag: r.tag || '', Protected: r.protected || '', DVac: r.dvac, Iac: r.iac, DVdc: r.dvdc, Idc: r.idc, Function: r.func || '',
+    Type: r.type || '', Vs: r.vs, Vp: r.vp, Checker: r.checker || '',
+    Output: r.output, Current: r.current, Resistance: r.resistance,
+    Lat: r.gps ? r.gps.lat : '', Lng: r.gps ? r.gps.lng : '', GPSAcc: r.gps ? r.gps.acc : '',
+    RecordedBy: r.recordedBy || '', Timestamp: r.timestamp || '', Photos: (r.photos || []).length, RecordID: r.id
+  }));
+  const rawWs = XLSX.utils.json_to_sheet(rawRows);
+  XLSX.utils.book_append_sheet(wb, rawWs, 'Raw Data');
+
   XLSX.writeFile(wb, 'CP_Merged_' + new Date().toISOString().slice(0,10) + '.xlsx');
 });
 
