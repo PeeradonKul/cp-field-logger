@@ -1780,6 +1780,20 @@ document.addEventListener('focusout', (e) => {
   }, 120);
 });
 
+/* ---------- Measure the nav bar's REAL height at runtime and reserve exactly that much space ----------
+   env(safe-area-inset-bottom) reports differently between Safari-in-browser and installed/standalone
+   mode on iOS, so a fixed CSS guess can't cover both. Measuring the actual rendered box sidesteps that. */
+function syncBottomPadding(){
+  if (!navBar) return;
+  const h = navBar.getBoundingClientRect().height;
+  if (h > 0) document.body.style.paddingBottom = (h + 14) + 'px';
+}
+window.addEventListener('load', syncBottomPadding);
+window.addEventListener('resize', syncBottomPadding);
+window.addEventListener('orientationchange', () => setTimeout(syncBottomPadding, 300));
+setTimeout(syncBottomPadding, 50);
+setTimeout(syncBottomPadding, 500);
+
 init();
 </script>
 </body>
