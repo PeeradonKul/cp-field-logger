@@ -18,7 +18,7 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--sans); height:100%;}
-  body{padding-bottom:78px; overscroll-behavior-y:none;}
+  body{padding-bottom:calc(78px + env(safe-area-inset-bottom)); overscroll-behavior-y:none;}
   h1,h2,h3{font-weight:700; letter-spacing:.2px; margin:0 0 4px;}
   header.top{
     position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#0F1417 80%,rgba(15,20,23,0));
@@ -86,7 +86,9 @@
   nav.tabs{
     position:fixed; bottom:0; left:0; right:0; z-index:30; background:#0B1012; border-top:1px solid var(--border);
     display:flex; padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+    transition:transform .15s ease;
   }
+  nav.tabs.kb-hidden{transform:translateY(100%);}
   nav.tabs button{
     flex:1; background:none; border:none; color:var(--muted); font-size:11px; padding:8px 4px; border-radius:10px;
     display:flex; flex-direction:column; align-items:center; gap:3px;
@@ -1763,6 +1765,19 @@ document.querySelectorAll('.num-with-toggle input').forEach(input => {
   input.addEventListener('blur', () => {
     if (input.value.trim() === '-') input.value = ''; // left empty — don't save a lone "-" as a value
   });
+});
+
+/* ---------- Hide bottom nav while the keyboard is open (prevents it covering Save during keyboard close) ---------- */
+const navBar = document.querySelector('nav.tabs');
+document.addEventListener('focusin', (e) => {
+  if (e.target.matches('input, select, textarea')) navBar.classList.add('kb-hidden');
+});
+document.addEventListener('focusout', (e) => {
+  if (!e.target.matches('input, select, textarea')) return;
+  setTimeout(() => {
+    const active = document.activeElement;
+    if (!active || !active.matches('input, select, textarea')) navBar.classList.remove('kb-hidden');
+  }, 120);
 });
 
 init();
