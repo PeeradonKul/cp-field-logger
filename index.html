@@ -43,6 +43,13 @@
   textarea{resize:vertical; min-height:60px;}
   select:focus, input:focus, textarea:focus{outline:2px solid var(--on); outline-offset:1px;}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .num-with-toggle{display:flex; gap:6px; align-items:stretch; margin-bottom:12px;}
+  .num-with-toggle input{margin-bottom:0; flex:1; min-width:0;}
+  .sign-toggle{
+    flex:none; width:44px; border-radius:10px; border:1px solid var(--border); background:var(--panel2);
+    color:var(--on); font-weight:700; font-size:17px; font-family:var(--mono); cursor:pointer;
+  }
+  .sign-toggle:active{background:var(--on); color:#062421;}
   .readout{
     background:#0B1012; border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:14px;
     display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; text-align:center;
@@ -191,11 +198,17 @@
       <div class="grid2">
         <div>
           <span class="label">On Potential (V)</span>
-          <input type="text" inputmode="decimal" id="f-on" placeholder="-1.35" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="f-on" placeholder="-1.35" />
+            <button type="button" class="sign-toggle" data-target="f-on">±</button>
+          </div>
         </div>
         <div>
           <span class="label">Off Potential (V)</span>
-          <input type="text" inputmode="decimal" id="f-off" placeholder="-0.72" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="f-off" placeholder="-0.72" />
+            <button type="button" class="sign-toggle" data-target="f-off">±</button>
+          </div>
         </div>
       </div>
       <div class="grid2">
@@ -281,11 +294,17 @@
       <div class="grid2">
         <div>
           <span class="label">P/S On (V)</span>
-          <input type="text" inputmode="decimal" id="t-pson" placeholder="-1.27" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="t-pson" placeholder="-1.27" />
+            <button type="button" class="sign-toggle" data-target="t-pson">±</button>
+          </div>
         </div>
         <div>
           <span class="label">P/S Off (V)</span>
-          <input type="text" inputmode="decimal" id="t-psoff" placeholder="-0.69" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="t-psoff" placeholder="-0.69" />
+            <button type="button" class="sign-toggle" data-target="t-psoff">±</button>
+          </div>
         </div>
       </div>
 
@@ -315,11 +334,17 @@
       <div class="grid2">
         <div>
           <span class="label">P/S On (V)</span>
-          <input type="text" inputmode="decimal" id="b-aOn" placeholder="-1.38" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="b-aOn" placeholder="-1.38" />
+            <button type="button" class="sign-toggle" data-target="b-aOn">±</button>
+          </div>
         </div>
         <div>
           <span class="label">P/S Off (V)</span>
-          <input type="text" inputmode="decimal" id="b-aOff" placeholder="-0.71" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="b-aOff" placeholder="-0.71" />
+            <button type="button" class="sign-toggle" data-target="b-aOff">±</button>
+          </div>
         </div>
       </div>
 
@@ -327,11 +352,17 @@
       <div class="grid2">
         <div>
           <span class="label">P/S On (V)</span>
-          <input type="text" inputmode="decimal" id="b-bOn" placeholder="-1.02" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="b-bOn" placeholder="-1.02" />
+            <button type="button" class="sign-toggle" data-target="b-bOn">±</button>
+          </div>
         </div>
         <div>
           <span class="label">P/S Off (V)</span>
-          <input type="text" inputmode="decimal" id="b-bOff" placeholder="-0.91" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="b-bOff" placeholder="-0.91" />
+            <button type="button" class="sign-toggle" data-target="b-bOff">±</button>
+          </div>
         </div>
       </div>
 
@@ -447,11 +478,17 @@
       <div class="grid2">
         <div>
           <span class="label">DC Volt Station Side (Vs)</span>
-          <input type="text" inputmode="decimal" id="j-vs" placeholder="-0.49" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="j-vs" placeholder="-0.49" />
+            <button type="button" class="sign-toggle" data-target="j-vs">±</button>
+          </div>
         </div>
         <div>
           <span class="label">DC Volt Pipe Side (Vp)</span>
-          <input type="text" inputmode="decimal" id="j-vp" placeholder="-1.31" />
+          <div class="num-with-toggle">
+            <input type="text" inputmode="decimal" id="j-vp" placeholder="-1.31" />
+            <button type="button" class="sign-toggle" data-target="j-vp">±</button>
+          </div>
         </div>
       </div>
 
@@ -1491,7 +1528,7 @@ document.getElementById('btnSave').addEventListener('click', async () => {
 });
 
 function val(id){ return document.getElementById(id).value.trim(); }
-function numval(id){ const v = document.getElementById(id).value; return v===''? null : parseFloat(v); }
+function numval(id){ const v = document.getElementById(id).value.trim(); return (v===''||v==='-') ? null : parseFloat(v); }
 function clearForm(){
   ['f-location','f-on','f-off','f-ac','f-remark',
    't-kp','t-location','t-structure','t-dcv','t-acv','t-dci','t-aci','t-vshunt','t-shuntratio','t-tap','t-rating','t-pson','t-psoff','t-remark',
@@ -1701,6 +1738,33 @@ async function init(){
   if (dbCloud) { (await getAllRecords()).forEach(syncToCloud); }
   refreshCloudTransformerCache();
 }
+/* ---------- Sign (+/-) toggle buttons for fields that are almost always negative ---------- */
+document.querySelectorAll('.sign-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    const v = input.value.trim();
+    if (v === '') { input.value = '-'; }
+    else if (v.startsWith('-')) { input.value = v.slice(1); }
+    else { input.value = '-' + v; }
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
+  });
+});
+
+// Defaults these fields to negative: tapping an empty field pre-fills "-" so typing continues right
+// after it (e.g. type "1.35" → becomes "-1.35"). Tap the "±" button only when the value is positive.
+document.querySelectorAll('.num-with-toggle input').forEach(input => {
+  input.addEventListener('focus', () => {
+    if (input.value.trim() === '') {
+      input.value = '-';
+      requestAnimationFrame(() => input.setSelectionRange(1, 1));
+    }
+  });
+  input.addEventListener('blur', () => {
+    if (input.value.trim() === '-') input.value = ''; // left empty — don't save a lone "-" as a value
+  });
+});
+
 init();
 </script>
 </body>
