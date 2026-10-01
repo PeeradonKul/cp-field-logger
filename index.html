@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png" />
 <style>
   :root{
-    --bg:#0F1417; --panel:#161E22; --panel2:#235e75; --border:#2A353A;
+    --bg:#0F1417; --panel:#161E22; --panel2:#1B2529; --border:#2A353A;
     --text:#F2F5F5; --muted:#8FA0A5; --on:#2DD4BF; --off:#FF6A13;
     --good:#22C55E; --warn:#F59E0B; --bad:#EF4444;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -191,17 +191,17 @@
       <div class="grid2">
         <div>
           <span class="label">On Potential (V)</span>
-          <input type="number" step="0.001" id="f-on" placeholder="-1.35" />
+          <input type="text" inputmode="decimal" id="f-on" placeholder="-1.35" />
         </div>
         <div>
           <span class="label">Off Potential (V)</span>
-          <input type="number" step="0.001" id="f-off" placeholder="-0.72" />
+          <input type="text" inputmode="decimal" id="f-off" placeholder="-0.72" />
         </div>
       </div>
       <div class="grid2">
         <div>
           <span class="label">AC (V)</span>
-          <input type="number" step="0.001" id="f-ac" placeholder="0.04" />
+          <input type="text" inputmode="decimal" id="f-ac" placeholder="0.04" />
         </div>
         <div>
           <span class="label">สภาพดิน (Soil condition)</span>
@@ -239,21 +239,21 @@
       <div class="grid2">
         <div>
           <span class="label">DC Voltage (V)</span>
-          <input type="number" step="0.001" id="t-dcv" placeholder="4.49" />
+          <input type="text" inputmode="decimal" id="t-dcv" placeholder="4.49" />
         </div>
         <div>
           <span class="label">AC Voltage (V)</span>
-          <input type="number" step="0.001" id="t-acv" placeholder="232" />
+          <input type="text" inputmode="decimal" id="t-acv" placeholder="232" />
         </div>
       </div>
       <div class="grid2">
         <div>
           <span class="label">DC Current (A)</span>
-          <input type="number" step="0.001" id="t-dci" placeholder="1.966" />
+          <input type="text" inputmode="decimal" id="t-dci" placeholder="1.966" />
         </div>
         <div>
           <span class="label">AC Current (A)</span>
-          <input type="number" step="0.001" id="t-aci" placeholder="0.12" />
+          <input type="text" inputmode="decimal" id="t-aci" placeholder="0.12" />
         </div>
       </div>
 
@@ -261,11 +261,11 @@
       <div class="grid2">
         <div>
           <span class="label">V shunt (mV)</span>
-          <input type="number" step="0.001" id="t-vshunt" placeholder="9.62" />
+          <input type="text" inputmode="decimal" id="t-vshunt" placeholder="9.62" />
         </div>
         <div>
           <span class="label">Shunt Ratio (A/mV)</span>
-          <input type="number" step="0.001" id="t-shuntratio" placeholder="0.1" />
+          <input type="text" inputmode="decimal" id="t-shuntratio" placeholder="0.1" />
         </div>
       </div>
       <div class="grid2">
@@ -281,11 +281,11 @@
       <div class="grid2">
         <div>
           <span class="label">P/S On (V)</span>
-          <input type="number" step="0.001" id="t-pson" placeholder="-1.27" />
+          <input type="text" inputmode="decimal" id="t-pson" placeholder="-1.27" />
         </div>
         <div>
           <span class="label">P/S Off (V)</span>
-          <input type="number" step="0.001" id="t-psoff" placeholder="-0.69" />
+          <input type="text" inputmode="decimal" id="t-psoff" placeholder="-0.69" />
         </div>
       </div>
 
@@ -315,11 +315,11 @@
       <div class="grid2">
         <div>
           <span class="label">P/S On (V)</span>
-          <input type="number" step="0.001" id="b-aOn" placeholder="-1.38" />
+          <input type="text" inputmode="decimal" id="b-aOn" placeholder="-1.38" />
         </div>
         <div>
           <span class="label">P/S Off (V)</span>
-          <input type="number" step="0.001" id="b-aOff" placeholder="-0.71" />
+          <input type="text" inputmode="decimal" id="b-aOff" placeholder="-0.71" />
         </div>
       </div>
 
@@ -327,18 +327,18 @@
       <div class="grid2">
         <div>
           <span class="label">P/S On (V)</span>
-          <input type="number" step="0.001" id="b-bOn" placeholder="-1.02" />
+          <input type="text" inputmode="decimal" id="b-bOn" placeholder="-1.02" />
         </div>
         <div>
           <span class="label">P/S Off (V)</span>
-          <input type="number" step="0.001" id="b-bOff" placeholder="-0.91" />
+          <input type="text" inputmode="decimal" id="b-bOff" placeholder="-0.91" />
         </div>
       </div>
 
       <div class="grid2">
         <div>
           <span class="label">Bond DC Current (A)</span>
-          <input type="number" step="0.001" id="b-current" placeholder="0.08" />
+          <input type="text" inputmode="decimal" id="b-current" placeholder="0.08" />
         </div>
         <div>
           <span class="label">ทิศทางกระแส</span>
@@ -359,7 +359,7 @@
         </div>
         <div>
           <span class="label">Bond Resistor (Ohm)</span>
-          <input type="number" step="0.001" id="b-resistor" placeholder="1" />
+          <input type="text" inputmode="decimal" id="b-resistor" placeholder="1" />
         </div>
       </div>
 
@@ -383,21 +383,21 @@
       <div class="grid2">
         <div>
           <span class="label">DVac (V)</span>
-          <input type="number" step="0.001" id="d-dvac" placeholder="0.01" />
+          <input type="text" inputmode="decimal" id="d-dvac" placeholder="0.01" />
         </div>
         <div>
           <span class="label">Iac (A)</span>
-          <input type="number" step="0.001" id="d-iac" placeholder="0" />
+          <input type="text" inputmode="decimal" id="d-iac" placeholder="0" />
         </div>
       </div>
       <div class="grid2">
         <div>
           <span class="label">DVdc (V)</span>
-          <input type="number" step="0.001" id="d-dvdc" placeholder="0.737" />
+          <input type="text" inputmode="decimal" id="d-dvdc" placeholder="0.737" />
         </div>
         <div>
           <span class="label">Idc (A)</span>
-          <input type="number" step="0.001" id="d-idc" placeholder="0" />
+          <input type="text" inputmode="decimal" id="d-idc" placeholder="0" />
         </div>
       </div>
 
@@ -447,11 +447,11 @@
       <div class="grid2">
         <div>
           <span class="label">DC Volt Station Side (Vs)</span>
-          <input type="number" step="0.001" id="j-vs" placeholder="-0.49" />
+          <input type="text" inputmode="decimal" id="j-vs" placeholder="-0.49" />
         </div>
         <div>
           <span class="label">DC Volt Pipe Side (Vp)</span>
-          <input type="number" step="0.001" id="j-vp" placeholder="-1.31" />
+          <input type="text" inputmode="decimal" id="j-vp" placeholder="-1.31" />
         </div>
       </div>
 
@@ -483,7 +483,7 @@
       <div class="grid2">
         <div>
           <span class="label">Rectifier Output (Vdc)</span>
-          <input type="number" step="0.001" id="a-output" placeholder="18.49" />
+          <input type="text" inputmode="decimal" id="a-output" placeholder="18.49" />
         </div>
         <div>
           <span class="label">สถานะ (Function)</span>
@@ -499,21 +499,21 @@
       <div class="grid2">
         <div>
           <span class="label">V shunt (mV)</span>
-          <input type="number" step="0.001" id="a-vshunt" placeholder="0.4" />
+          <input type="text" inputmode="decimal" id="a-vshunt" placeholder="0.4" />
         </div>
         <div>
           <span class="label">Shunt Ratio (A/mV)</span>
-          <input type="number" step="0.001" id="a-shuntratio" placeholder="0.05" />
+          <input type="text" inputmode="decimal" id="a-shuntratio" placeholder="0.05" />
         </div>
       </div>
       <div class="grid2">
         <div>
           <span class="label">กระแส Anode รวม (A)</span>
-          <input type="number" step="0.0001" id="a-current" placeholder="0.4003" />
+          <input type="text" inputmode="decimal" id="a-current" placeholder="0.4003" />
         </div>
         <div>
           <span class="label">ความต้านทานวงจรรวม (Ohm) = Vdc / I</span>
-          <input type="number" step="0.01" id="a-resistance" placeholder="46.19" />
+          <input type="text" inputmode="decimal" id="a-resistance" placeholder="46.19" />
         </div>
       </div>
 
