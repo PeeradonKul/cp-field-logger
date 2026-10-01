@@ -1306,18 +1306,27 @@ let currentGps = null;
 function captureGps(){
   return new Promise((resolve) => {
     const box = document.getElementById('gpsTxt');
-    box.textContent = 'กำลังจับพิกัด...'; box.classList.remove('got');
-    if (!navigator.geolocation) { box.textContent = 'อุปกรณ์นี้ไม่รองรับ GPS'; resolve(null); return; }
+    box.classList.remove('got');
+    let waited = 0;
+    box.textContent = 'กำลังจับพิกัด... (ถ้าไม่มีสัญญาณมือถือเลย อาจรอได้ถึง 60 วิ)';
+    const ticker = setInterval(() => {
+      waited += 5;
+      if (!currentGps) box.textContent = `กำลังจับพิกัด... (รอ ${waited} วิ — ถ้าไม่มีสัญญาณมือถือเลย อาจใช้เวลาถึง 60 วิ)`;
+    }, 5000);
+
+    if (!navigator.geolocation) { clearInterval(ticker); box.textContent = 'อุปกรณ์นี้ไม่รองรับ GPS'; resolve(null); return; }
     navigator.geolocation.getCurrentPosition(pos => {
+      clearInterval(ticker);
       currentGps = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
       box.textContent = `${currentGps.lat.toFixed(6)}, ${currentGps.lng.toFixed(6)} (±${Math.round(currentGps.acc)}m)`;
       box.classList.add('got');
       renderNearest(currentGps.lat, currentGps.lng);
       resolve(currentGps);
     }, err => {
+      clearInterval(ticker);
       box.textContent = 'จับพิกัดไม่สำเร็จ: ' + err.message;
       resolve(null);
-    }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+    }, { enableHighAccuracy:true, timeout:60000, maximumAge:0 });
   });
 }
 document.getElementById('btnGps').addEventListener('click', () => { captureGps(); });
