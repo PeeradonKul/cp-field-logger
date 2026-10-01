@@ -88,7 +88,13 @@
     display:flex; padding:6px 6px calc(6px + env(safe-area-inset-bottom));
     transition:transform .15s ease;
   }
-  nav.tabs.kb-hidden{transform:translateY(100%);}
+  nav.tabs.kb-hidden, nav.tabs.manual-hidden{transform:translateY(100%);}
+  #navToggleBtn{
+    position:fixed; left:50%; transform:translateX(-50%); z-index:40;
+    width:46px; height:22px; border-radius:10px 10px 0 0; border:1px solid var(--border); border-bottom:none;
+    background:#0B1012; color:var(--muted); font-size:13px; line-height:1; cursor:pointer; padding:0;
+    display:flex; align-items:center; justify-content:center; transition:bottom .15s ease;
+  }
   nav.tabs button{
     flex:1; background:none; border:none; color:var(--muted); font-size:11px; padding:8px 4px; border-radius:10px;
     display:flex; flex-direction:column; align-items:center; gap:3px;
@@ -652,6 +658,7 @@
     ตั้งค่า
   </button>
 </nav>
+<button id="navToggleBtn" aria-label="ซ่อน/แสดงแถบเมนู">﹀</button>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
@@ -1770,15 +1777,33 @@ document.querySelectorAll('.num-with-toggle input').forEach(input => {
 /* ---------- Hide bottom nav while the keyboard is open (prevents it covering Save during keyboard close) ---------- */
 const navBar = document.querySelector('nav.tabs');
 document.addEventListener('focusin', (e) => {
-  if (e.target.matches('input, select, textarea')) navBar.classList.add('kb-hidden');
+  if (e.target.matches('input, select, textarea')) { navBar.classList.add('kb-hidden'); positionNavToggle(); }
 });
 document.addEventListener('focusout', (e) => {
   if (!e.target.matches('input, select, textarea')) return;
   setTimeout(() => {
     const active = document.activeElement;
-    if (!active || !active.matches('input, select, textarea')) navBar.classList.remove('kb-hidden');
+    if (!active || !active.matches('input, select, textarea')) { navBar.classList.remove('kb-hidden'); positionNavToggle(); }
   }, 120);
 });
+
+/* ---------- Manual nav-hide toggle handle — tap to hide/show the nav bar on demand ---------- */
+const navToggleBtn = document.getElementById('navToggleBtn');
+navToggleBtn.addEventListener('click', () => {
+  navBar.classList.toggle('manual-hidden');
+  positionNavToggle();
+});
+function positionNavToggle(){
+  const hidden = navBar.classList.contains('kb-hidden') || navBar.classList.contains('manual-hidden');
+  if (hidden) {
+    navToggleBtn.style.bottom = 'env(safe-area-inset-bottom)';
+    navToggleBtn.textContent = '︿'; // pointing up = tap to show the menu
+  } else {
+    const navH = navBar.getBoundingClientRect().height;
+    navToggleBtn.style.bottom = navH + 'px';
+    navToggleBtn.textContent = '﹀'; // pointing down = tap to hide the menu
+  }
+}
 
 /* ---------- Measure the nav bar's REAL height at runtime and reserve exactly that much space ----------
    env(safe-area-inset-bottom) reports differently between Safari-in-browser and installed/standalone
@@ -1787,6 +1812,7 @@ function syncBottomPadding(){
   if (!navBar) return;
   const h = navBar.getBoundingClientRect().height;
   if (h > 0) document.body.style.paddingBottom = (h + 14) + 'px';
+  positionNavToggle();
 }
 window.addEventListener('load', syncBottomPadding);
 window.addEventListener('resize', syncBottomPadding);
