@@ -806,12 +806,15 @@ document.getElementById('btnZip').addEventListener('click', async () => {
   const withPhotos = records.filter(r => r.photos && r.photos.length);
   if (!withPhotos.length) return alert('ไม่มีรูปภาพในข้อมูลที่รวมไว้');
   const zip = new JSZip();
+  const safe = s => String(s||'').replace(/^Location\s*:\s*/i,'').replace(/[^\w.\-฀-๿]+/g,'_').replace(/^_+|_+$/g,'').slice(0,60) || 'unknown';
   withPhotos.forEach(r => {
-    const safeAsset = (r.asset||'asset').replace(/[^\w-]+/g,'_');
-    const safeKp = (r.kp||'0').replace(/[^\w.-]+/g,'_');
+    const folder = r.formType || 'test_station';
+    const label = safe(getRecordLabel(r));
+    const shortId = String(r.id||'').slice(-5);
     r.photos.forEach((dataUrl, i) => {
       const base64 = dataUrl.split(',')[1];
-      zip.file(`${safeAsset}/KP_${safeKp}_${i+1}.jpg`, base64, {base64:true});
+      // folder per tab + label + short id => names never collide, so no photo is overwritten
+      zip.file(`${folder}/${label}_${shortId}_${i+1}.jpg`, base64, {base64:true});
     });
   });
   const blob = await zip.generateAsync({type:'blob'});
